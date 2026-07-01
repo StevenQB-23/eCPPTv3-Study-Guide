@@ -13,7 +13,7 @@
   
 ## 01 - PowerShell for Pentesters
 
-### - SS
+### ~ PowerShell Fundamentals
 
 ```bash
 
