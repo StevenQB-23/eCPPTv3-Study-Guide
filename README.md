@@ -12,7 +12,8 @@
 - [10 - Command & Control (C2/C&C)](#10---command--control-cc)
   
 ## 01 - PowerShell for Pentesters
-### 
+
+### SS
 
 ```bash
 
