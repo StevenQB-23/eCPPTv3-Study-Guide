@@ -36,7 +36,7 @@ C:\> powershell.exe -ExecutionPolicy Unrestricted .\script.ps1
 
 C:\> powershell.exe -WindowStyle Hidden .\script.ps1 # WindowStyle oculta la ventana de PowerShell cuando se utiliza con el argumento «hidden».
 
-
+2
 ```
 ### ~ PowerShell for Pentesting
 
