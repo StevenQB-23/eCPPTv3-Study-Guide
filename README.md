@@ -18,6 +18,12 @@
 ```bash
 
 ```
+### ~ PowerShell for Pentesting
+
+```bash
+
+```
+
 ## 02 - Client-Side Attacks
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
