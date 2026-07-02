@@ -16,6 +16,26 @@
 ### ~ PowerShell Fundamentals
 
 ```bash
+- Viene preinstalado en todo Windows moderno (7 / 2008 R2+) → living-off-the-land: usamos herramientas nativas del sistema en lugar de subir binarios externos.
+- Muchas organizaciones no monitorean activamente la actividad de PowerShell porque se considera una app "de confianza".
+- Permite ejecutar/descargar código en memoria (evade AV/EDR basados en firmas de disco).
+- Acceso directo a .NET Framework, COM y WMI → útil para enumeración, persistencia y post-explotación.
+- Se pueden invocar funciones de DLLs de Windows y bypassear application whitelisting.
+- Extensiones: .ps1 (scripts), .psm1 (módulos).
+
+C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe       # Ruta del ejecutable 64-bit
+C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe        # Ruta del ejecutable 32-bit
+
+PS C:\> [Environment]::Is64BitProcess # Verificar si el proceso actual es 64-bit:
+
+PS C:\> powershell /? # Opciones
+
+# La política de ejecución de PowerShell determina qué scripts —si es que hay alguno— podemos ejecutar, y puede desactivarse fácilmente mediante los argumentos «Bypass» o «Unrestricted».
+C:\> powershell.exe -ExecutionPolicy Bypass .\script.ps1
+C:\> powershell.exe -ExecutionPolicy Unrestricted .\script.ps1
+
+C:\> powershell.exe -WindowStyle Hidden .\script.ps1 # WindowStyle oculta la ventana de PowerShell cuando se utiliza con el argumento «hidden».
+
 
 ```
 ### ~ PowerShell for Pentesting
