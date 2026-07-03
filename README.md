@@ -35,8 +35,23 @@ C:\> powershell.exe -ExecutionPolicy Bypass .\script.ps1
 C:\> powershell.exe -ExecutionPolicy Unrestricted .\script.ps1
 
 C:\> powershell.exe -WindowStyle Hidden .\script.ps1 # WindowStyle oculta la ventana de PowerShell cuando se utiliza con el argumento «hidden».
+C:\> powershell.exe -Command Get-Process # El parámetro -Command se utiliza para especificar un comando o un bloque de script que se va a ejecutar.
+C:\> powershell.exe -Command “& { Get-EventLog –LogName security }”
+C:\> powershell.exe -EncodedCommand $encodedCommand # El parámetro -EncodedCommand se utiliza para ejecutar scripts o comandos codificados en Base64.
+C:\> powershell.exe -NoProfile .\script.ps1 # No cargar perfiles (evita interferencias)
+C:\> powershell.exe –Version 2 # Downgrade de versión (si está instalada)
 
-2
+C:\> Get-Help <cmdlet>              # ayuda básica
+C:\> Get-Help <cmdlet> -Full        # ayuda completa con parámetros
+C:\> Get-Help <cmdlet> -Examples    # ejemplos de uso
+C:\> Get-Help <cmdlet> -Online      # abre la doc web
+C:\> Update-Help                    # actualiza archivos de ayuda locales
+
+C:\> Get-Command                    # lista todos los cmdlets/alias/funciones disponibles
+C:\> Get-Command -Name *Firewall*   # filtrar por nombre (wildcard)
+
+Get-Help: https://technet.microsoft.com/enus/library/cc764318.aspx
+
 ```
 ### ~ PowerShell for Pentesting
 
