@@ -41,6 +41,9 @@ C:\> powershell.exe -EncodedCommand $encodedCommand # El parámetro -EncodedComm
 C:\> powershell.exe -NoProfile .\script.ps1 # No cargar perfiles (evita interferencias)
 C:\> powershell.exe –Version 2 # Downgrade de versión (si está instalada)
 
+# Cmdlet = mini-script nativo de PowerShell, formato Verbo-Sustantivo (ej. Get-Process, Invoke-Command).
+# El output de un cmdlet es un objeto (no texto plano como en bash), lo que permite filtrar por propiedades específicas.
+
 C:\> Get-Help <cmdlet>              # ayuda básica
 C:\> Get-Help <cmdlet> -Full        # ayuda completa con parámetros
 C:\> Get-Help <cmdlet> -Examples    # ejemplos de uso
@@ -49,8 +52,32 @@ C:\> Update-Help                    # actualiza archivos de ayuda locales
 
 C:\> Get-Command                    # lista todos los cmdlets/alias/funciones disponibles
 C:\> Get-Command -Name *Firewall*   # filtrar por nombre (wildcard)
+C:\> powershell -Command Get-Process # Util para enumeración
 
 Get-Help: https://technet.microsoft.com/enus/library/cc764318.aspx
+
+PS C:\> Get-Process | Sort-Object -Unique | Select-Object ProcessName # Pipelining
+PS C:\> Get-Process | Sort-Object -Unique | Select-Object ProcessName > uniq_procs.txt   # redirigir a archivo
+PS C:\> Get-Process | Format-List *              # alias: fl
+PS C:\> Get-Process chrome, firefox | Sort-Object -Unique | Format-List Path, Id
+PS C:\> Get-Alias -Definition Get-ChildItem # Encontrar el alias de un cmdlet
+PS C:\> Get-WmiObject -class win32_operatingsystem | select -Property *
+PS C:\> Get-WmiObject -class win32_operatingsystem | fl *
+PS C:\> Get-WmiObject -class win32_service |Format-List *
+PS C:\> Get-WmiObject -class win32_service |Sort-Object -Unique PathName | fl Pathname
+PS C:\> Get-WmiObject -class win32_operatingsystem | fl * | Export-Csv C:\host_info.csv # Exportar archivo a CSV
+PS C:\> cd HKLM:\  # Acceder a los subárboles del Registro de Windows
+
+PS HKLM:\> cd .\SOFTWARE\Microsoft\Windows\CurrentVersion\
+PS HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\> ls
+
+PS C:\> Select-String -Path C:\users\user\Documents\*.txt -Pattern pass* # Búsqueda de credenciales / strings sensibles (muy relevante para post-explotación)
+PS C:\> Get-Content C:\Users\user\Documents\passwords.txt
+# Búsqueda recursiva en un directorio:
+PS C:\> ls -r C:\users\user\Documents -File .txt | % { sls -Path $_ -Pattern pass }
+# % = alias ForEach-Object | sls = alias Select-String | $_ = valor actual del pipeline
+PS C:\> Get-Service
+PS C:\> Get-Service “s*” | Sort-Object Status -Descending
 
 ```
 ### ~ PowerShell for Pentesting
