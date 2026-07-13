@@ -319,26 +319,44 @@ PORT      STATE SERVICE       VERSION
 ## 02 - Client-Side Attacks
 
 ### Client-Side Attacks
-* Qué son
+#### Qué son
 - Ataques que explotan el eslabón más débil: los empleados/usuarios
 - No requieren acceso directo al sistema — se entregan via email, USB, sitios comprometidos
 - Más peligrosos que server-side porque no necesitan vulnerabilidades en servidores
 
-* Flujo general
+#### Flujo general
 Reconocimiento → Identificar objetivo → Desarrollar payload
 → Preparar entrega → Entregar payload → Ejecución → Post-explotación
 
-* Ventajas para el atacante
+#### Ventajas para el atacante
 - Superficie de ataque enorme (todos los endpoints)
 - Explota comportamiento humano, no solo software
 - Endpoints tienen menos controles que servidores
 - Facilita movimiento lateral una vez dentro
 
-* Client-Side vs Server-Side
+#### Client-Side vs Server-Side
 - Client-Side: apunta a usuarios (phishing, macros, HTA, drive-by downloads)
 - Server-Side: apunta a servidores (SQLi, RCE, SSRF, misconfigs)
   
 ### Reconnaissance
+# Objetivo
+- Identificar info del objetivo ANTES de desarrollar el payload
+- Adaptar el ataque según el entorno del target (browser, OS, plugins)
+
+# Client-Side Information Gathering
+- Fuentes OSINT: LinkedIn, redes sociales, web corporativa, job postings
+- Job postings revelan tecnologías usadas internamente (ej: "se requiere experiencia en Office 365")
+- Herramientas: theHarvester, Maltego, Shodan
+
+# Client Fingerprinting
+- Identificar browser, versión, OS, plugins, resolución del objetivo
+- Útil para adaptar el payload al entorno específico del target
+- Herramientas: fingerprintjs, grabify.link (tracking links)
+- Técnica: enviar un link al objetivo y capturar info del request HTTP
+  - User-Agent → browser y OS
+  - IP → geolocalización
+  - Headers → configuración del cliente
+
 
 ### Social Engineering
 
