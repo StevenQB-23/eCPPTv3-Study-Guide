@@ -317,6 +317,33 @@ PORT      STATE SERVICE       VERSION
 ```
 
 ## 02 - Client-Side Attacks
+
+### Client-Side Attacks
+* Qué son
+- Ataques que explotan el eslabón más débil: los empleados/usuarios
+- No requieren acceso directo al sistema — se entregan via email, USB, sitios comprometidos
+- Más peligrosos que server-side porque no necesitan vulnerabilidades en servidores
+
+* Flujo general
+Reconocimiento → Identificar objetivo → Desarrollar payload
+→ Preparar entrega → Entregar payload → Ejecución → Post-explotación
+
+* Ventajas para el atacante
+- Superficie de ataque enorme (todos los endpoints)
+- Explota comportamiento humano, no solo software
+- Endpoints tienen menos controles que servidores
+- Facilita movimiento lateral una vez dentro
+
+* Client-Side vs Server-Side
+- Client-Side: apunta a usuarios (phishing, macros, HTA, drive-by downloads)
+- Server-Side: apunta a servidores (SQLi, RCE, SSRF, misconfigs)
+  
+### Reconnaissance
+
+### Social Engineering
+
+
+
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
