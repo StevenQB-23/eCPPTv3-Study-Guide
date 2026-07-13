@@ -298,7 +298,23 @@ ALL                             # aplicar todas las técnicas de ofuscación AST
 
 # Output: script .ps1 con el mismo comportamiento pero irreconocible para el AV
 ```
+### ~ SkillCheck CTF1
 
+```bash
+server.prod.local (10.4.23.70)  -> directo
+web.prod.local (10.4.19.58) -> pivote
+
+# nmap -sV -p 135,139,445,3389,5985,47001,49664,49665,49666,49667,49668,49669,49671,49681 10.4.23.70                                                                              
+PORT      STATE SERVICE       VERSION
+135/tcp   open  msrpc         Microsoft Windows RPC
+139/tcp   open  netbios-ssn   Microsoft Windows netbios-ssn
+445/tcp   open  microsoft-ds?
+3389/tcp  open  ms-wbt-server Microsoft Terminal Services
+5985/tcp  open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+47001/tcp open  http          Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP)
+
+
+```
 
 ## 02 - Client-Side Attacks
 ## 03 - Web Application Penetration Testing
