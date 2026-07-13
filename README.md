@@ -318,7 +318,7 @@ PORT      STATE SERVICE       VERSION
 
 ## 02 - Client-Side Attacks
 
-### Client-Side Attacks
+### ~ Client-Side Attacks
 
 #### Qué son
 - Ataques que explotan el eslabón más débil: los empleados/usuarios
@@ -339,7 +339,7 @@ Reconocimiento → Identificar objetivo → Desarrollar payload
 - Client-Side: apunta a usuarios (phishing, macros, HTA, drive-by downloads)
 - Server-Side: apunta a servidores (SQLi, RCE, SSRF, misconfigs)
   
-### Reconnaissance
+### ~ Reconnaissance
 
 #### Objetivo
 - Identificar info del objetivo ANTES de desarrollar el payload
@@ -359,7 +359,7 @@ Reconocimiento → Identificar objetivo → Desarrollar payload
   - IP → geolocalización
   - Headers → configuración del cliente
 
-### Social Engineering
+### ~ Social Engineering
 
 #### Qué es
 - Manipulación psicológica para que el objetivo realice una acción
@@ -398,6 +398,68 @@ chmod +x gophish
 - Link clickeado
 - Credenciales enviadas (si hay formulario)
 
+### ~ Development & Weaponization
+
+#### Resource Development & Weaponization
+
+- Fase del ataque donde el atacante prepara los recursos necesarios para el ataque
+- En pentesting/red team: desarrollar payloads, infraestructura y herramientas antes de la entrega
+- Corresponde a la fase "Weaponization" del Cyber Kill Chain
+
+~ Cyber Kill Chain (contexto)
+Reconocimiento → Weaponization → Entrega → Explotación
+→ Instalación → C2 → Acciones sobre objetivos
+
+~ MITRE ATT&CK Framework
+- Base de conocimiento de tácticas y técnicas usadas por atacantes reales
+- Útil para mapear ataques a técnicas conocidas y documentar hallazgos
+- URL: https://attack.mitre.org
+
+~ Estructura
+- Tácticas: el "qué" — objetivo del atacante (ej: Initial Access, Execution, Persistence)
+- Técnicas: el "cómo" — método específico (ej: T1566 Phishing, T1059 Command Scripting)
+- Sub-técnicas: variantes específicas (ej: T1566.001 Spearphishing Attachment)
+
+~ Técnicas relevantes para Client-Side Attacks
+- T1566.001 — Spearphishing Attachment
+- T1566.002 — Spearphishing Link
+- T1059.001 — PowerShell
+- T1059.005 — VBA Macros
+- T1027     — Obfuscated Files or Information
+- T1204.002 — User Execution: Malicious File
+
+~ Por qué importa en pentesting
+- Los reportes profesionales mapean cada hallazgo a su técnica ATT&CK
+- Permite al cliente entender qué tácticas reales emuló el pentest
+- Los blue teams usan ATT&CK para detectar y responder ataques
+
+~ Resource Development
+- Registrar dominios para phishing (typosquatting: rnicrosof.com vs microsoft.com)
+- Configurar infraestructura C2
+- Obtener/crear certificados SSL para parecer legítimo
+- Crear cuentas falsas en redes sociales para pretexting
+- Comprometer infraestructura de terceros para usarla como relay
+
+~ Weaponization
+- Combinar un payload malicioso con un vector de entrega legítimo
+- Objetivo: que el archivo/link parezca inofensivo pero ejecute código malicioso
+- Vectores comunes:
+  - Documentos Office con macros (Word, Excel)
+  - PDFs con JavaScript embebido
+  - HTML Applications (.hta)
+  - Archives (.zip, .iso) con payloads adentro
+  - Links a páginas con drive-by downloads
+
+~ Payload vs Exploit
+- Exploit: código que aprovecha una vulnerabilidad
+- Payload: código que se ejecuta DESPUÉS del exploit (reverse shell, dropper, etc.)
+- En client-side attacks el "exploit" suele ser ingeniería social,
+  no una vulnerabilidad técnica
+
+~ Staged vs Stageless Payloads
+- Stageless: payload completo en un archivo — más grande, más detectable
+- Staged: payload pequeño (stager) que descarga el payload real desde C2
+  — más sigiloso, requiere conexión a internet desde la víctima
 
 
 ## 03 - Web Application Penetration Testing
