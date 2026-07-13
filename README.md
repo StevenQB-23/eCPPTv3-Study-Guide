@@ -319,6 +319,7 @@ PORT      STATE SERVICE       VERSION
 ## 02 - Client-Side Attacks
 
 ### Client-Side Attacks
+
 #### Qué son
 - Ataques que explotan el eslabón más débil: los empleados/usuarios
 - No requieren acceso directo al sistema — se entregan via email, USB, sitios comprometidos
@@ -339,16 +340,17 @@ Reconocimiento → Identificar objetivo → Desarrollar payload
 - Server-Side: apunta a servidores (SQLi, RCE, SSRF, misconfigs)
   
 ### Reconnaissance
-# Objetivo
+
+#### Objetivo
 - Identificar info del objetivo ANTES de desarrollar el payload
 - Adaptar el ataque según el entorno del target (browser, OS, plugins)
 
-# Client-Side Information Gathering
+#### Client-Side Information Gathering
 - Fuentes OSINT: LinkedIn, redes sociales, web corporativa, job postings
 - Job postings revelan tecnologías usadas internamente (ej: "se requiere experiencia en Office 365")
 - Herramientas: theHarvester, Maltego, Shodan
 
-# Client Fingerprinting
+#### Client Fingerprinting
 - Identificar browser, versión, OS, plugins, resolución del objetivo
 - Útil para adaptar el payload al entorno específico del target
 - Herramientas: fingerprintjs, grabify.link (tracking links)
@@ -357,8 +359,44 @@ Reconocimiento → Identificar objetivo → Desarrollar payload
   - IP → geolocalización
   - Headers → configuración del cliente
 
-
 ### Social Engineering
+
+#### Qué es
+- Manipulación psicológica para que el objetivo realice una acción
+- No explota software — explota comportamiento humano
+
+#### Técnicas principales
+- Phishing — email masivo con payload o link malicioso
+- Spear Phishing — phishing dirigido a una persona específica (más efectivo)
+- Vishing — phishing por voz/llamada
+- Smishing — phishing por SMS
+- Pretexting — crear una historia creíble para justificar la interacción
+
+#### Pretexting
+- Crear un escenario falso convincente para que el objetivo confíe
+- Ejemplos: hacerse pasar por IT, RRHH, proveedor, banco
+- Elementos clave: urgencia, autoridad, confianza
+
+#### GoPhish — Phishing Campaigns
+* Instalación
+wget https://github.com/gophish/gophish/releases/...
+chmod +x gophish
+./gophish
+
+* Panel admin en https://localhost:3333 (credenciales por defecto admin:gophish)
+
+#### Componentes de una campaña en GoPhish
+1. Sending Profile — servidor SMTP para enviar los emails
+2. Landing Page — página falsa que clona el sitio legítimo
+3. Email Template — el email de phishing con el link a la landing page
+4. Users & Groups — lista de objetivos
+5. Campaign — une todo y lanza el ataque
+
+#### Métricas que trackea GoPhish
+- Email enviado
+- Email abierto
+- Link clickeado
+- Credenciales enviadas (si hay formulario)
 
 
 
