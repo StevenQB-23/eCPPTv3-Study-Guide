@@ -461,7 +461,6 @@ Reconocimiento → Weaponization → Entrega → Explotación
 - Staged: payload pequeño (stager) que descarga el payload real desde C2
   — más sigiloso, requiere conexión a internet desde la víctima
 
-
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
