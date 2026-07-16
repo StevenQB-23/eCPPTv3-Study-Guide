@@ -461,6 +461,92 @@ Reconocimiento → Weaponization → Entrega → Explotación
 - Staged: payload pequeño (stager) que descarga el payload real desde C2
   — más sigiloso, requiere conexión a internet desde la víctima
 
+#### VBA Macro Fundamentals
+
+~ Qué es VBA
+- Visual Basic for Applications — lenguaje de scripting integrado en Microsoft Office
+- Permite automatizar tareas en Word, Excel, PowerPoint, Access
+- En pentesting: vector de initial access via documentos maliciosos
+
+~ Por qué es relevante para red team
+- Los documentos Office son vectores de entrega confiables y comunes
+- Los usuarios confían en archivos .docx, .xlsx, etc.
+- Las macros pueden ejecutar comandos del sistema, descargar payloads, abrir conexiones
+
+~ Formatos que soportan macros
+- .docm — Word con macros
+- .xlsm — Excel con macros
+- .doc  — formato legacy, también soporta macros
+- Nota: .docx NO soporta macros
+
+#### VBA Macro Development
+
+```bash
+# Habilitar macros en Word
+# Por defecto está deshabilitado — ir a:
+# Archivo → Opciones → Centro de confianza → Configuración del centro de confianza
+# → Configuración de macros → Habilitar todas las macros
+
+# Habilitar pestaña Desarrollador:
+# Archivo → Opciones → Personalizar cinta → activar "Desarrollador"
+# O directo: Alt+F11 para abrir el editor VBA
+
+# Entry Points — se ejecutan automáticamente al abrir el documento
+Sub AutoOpen()
+    MsgBox "Hello"
+End Sub
+
+Sub Document_Open()   ' Alternativa a AutoOpen, mismo efecto
+    MsgBox "Hello"
+End Sub
+
+# Ejecutar comandos del sistema
+Shell "cmd.exe /c whoami"
+Shell "powershell.exe -Command Get-Process"
+
+# WScript.Shell — más control sobre la ejecución
+Dim shell As Object
+Set shell = CreateObject("WScript.Shell")
+
+shell.Run "cmd.exe /c whoami > C:\output.txt"
+
+# Argumentos de Shell.Run
+# shell.Run "programa", [WindowStyle], [WaitOnReturn]
+# WindowStyle:
+# 0 = oculto (más usado en pentesting — no levanta sospechas)
+# 1 = normal
+# 2 = minimizado
+# 3 = maximizado
+# WaitOnReturn: True = espera a que termine | False = continúa sin esperar
+
+shell.Run "calc.exe", 3         ' maximizado
+shell.Run "notepad.exe", 0      ' oculto
+shell.Run "cmd.exe /c payload.exe", 0, True
+
+# WScript — Windows Script Host
+# Permite interactuar con el sistema a nivel más profundo
+
+Dim wscript As Object
+Set wscript = CreateObject("WScript.Shell")
+
+wscript.Popup "Mensaje al usuario"                        ' mostrar mensaje
+wscript.ExpandEnvironmentStrings("%USERNAME%")            ' variables de entorno
+wscript.ExpandEnvironmentStrings("%TEMP%")
+wscript.Run "notepad.exe"
+wscript.Run "powershell.exe -ExecutionPolicy Bypass -File C:\script.ps1"
+
+# Leer registro de Windows
+Dim version As String
+version = shell.RegRead("HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\ProductName")
+MsgBox version    ' muestra versión de Windows
+
+# Puntos clave para el examen
+# - AutoOpen() y Document_Open() son los entry points más usados
+# - Shell y WScript.Shell son los dos métodos para ejecutar comandos
+# - WindowStyle 0 oculta la ventana — importante para evasión
+# - Las macros requieren que el usuario habilite el contenido al abrir el doc
+```
+
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
