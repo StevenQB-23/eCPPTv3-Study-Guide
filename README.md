@@ -1061,7 +1061,6 @@ type C:\FLAG1.txt
 # - bind_tcp en vez de reverse_tcp porque la red interna no puede conectar a Kali
 ```
 
-
 ## 03 - Web Application Penetration Testing
 ## 04 - Network Penetration Testing
 ## 05 - System Security & x86 Assembly Fundamentals
