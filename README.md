@@ -1062,10 +1062,69 @@ type C:\FLAG1.txt
 ```
 
 ## 03 - Web Application Penetration Testing
+
+### ~ Passive Information Gathering
+### ~ Active Information Gathering
+### ~ XSS
+### ~ SQLi
+
 ## 04 - Network Penetration Testing
+
+### ~ Information Gathering
+### ~ Networking Primer
+### ~ Host Discovery
+### ~ Port Scanning
+### ~ Firewall/IDS Evasion
+### ~ Scan Timing & Performance
+### ~ Output & Verbosity
+### ~ Enumeration Overview
+### ~ Windows Enumeration
+### ~ Linux Enumeration
+### ~ Windows Exploitation
+### ~ Linux Exploitation
+### ~ Windows Post-Exploitation
+
 ## 05 - System Security & x86 Assembly Fundamentals
+
+### ~ Architecture Fundamentals
+### ~ x86 Assembly Fundamentals
+
 ## 06 - Exploit Development: Buffer Overflows
+
+### ~ Buffer Overflow Fundamentals
+### ~ Stack-Based Overflow
+### ~ SEH Overflow
+
 ## 07 - Privilege Escalation
+
+### ~ Privilege Escalation Scripts
+### ~ Locally Stored Credentials
+### ~ Service Exploits
+### ~ Windows Registry
+### ~ Impersonation Attacks
+### ~ Advanced Techniques
+### ~ Linux Privilege Escalation Techniques
+
 ## 08 - Lateral Movement & Pivoting
+
+### ~ Windows Lateral Movement Techniques
+### ~ Credential-Based Lateral Movement
+### ~ Pass-the-Hash (PtH)
+### ~ Linux Movement
+### ~ Pivoting Techniques
+
 ## 09 - Active Directory Penetration Testing
+
+### ~ Active Directory
+### ~ AD Penetration Testing
+### ~ AD Enumeration
+### ~ AD Privilege Escalation
+### ~ AD Lateral Movement
+### ~ AD Persistence
+
 ## 10 - Command & Control (C2/C&C)
+
+### ~ C2 Overview
+### ~ Command & Control
+### ~ PowerShell Empire & Starkiller
+
