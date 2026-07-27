@@ -1064,8 +1064,48 @@ type C:\FLAG1.txt
 ## 03 - Web Application Penetration Testing
 
 ### ~ Passive Information Gathering
+
+#### Introduction to Web Enumeration & Information Gathering
+
+```bash
+# Qué es Information Gathering
+# Es la primera fase de cualquier pentest, consiste en recolectar
+# información sobre un individuo, empresa, sitio web o sistema objetivo
+
+# Passive Information Gathering
+# No hay interacción directa/activa con el target
+# No requiere autorización especial (todo es información pública)
+# Incluye:
+#   - Ownership de dominios (WHOIS)
+#   - Descubrir archivos/directorios ocultos o "disallowed" (robots.txt)
+#   - IPs y registros DNS
+#   - Tecnologías web usadas en el sitio
+#   - Detección de WAF
+#   - Subdominios (vía fuentes públicas)
+#   - Estructura de contenido del sitio
+
+# Active Information Gathering / Enumeration
+# Interacción directa con el sistema objetivo
+# SÍ requiere autorización (es "tocar" el sistema)
+# Incluye:
+#   - Descargar y analizar código fuente del sitio/app
+#   - Port scanning y descubrimiento de servicios
+#   - Web server fingerprinting
+#   - Web application scanning
+#   - DNS Zone Transfers
+#   - Subdomain enumeration por Brute-Force
+```
+
+#### OWASP Web Security Testing Guide
+
+```bash
+
+```
+
 ### ~ Active Information Gathering
+
 ### ~ XSS
+
 ### ~ SQLi
 
 ## 04 - Network Penetration Testing
