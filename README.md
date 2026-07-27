@@ -1099,7 +1099,60 @@ type C:\FLAG1.txt
 #### OWASP Web Security Testing Guide
 
 ```bash
+# Qué es
+# Es un framework/metodología de código abierto mantenida por OWASP
+# (Open Web Application Security Project) que documenta cómo hacer
+# testing de seguridad en aplicaciones web de forma estructurada
+# No es una herramienta, es una GUÍA/CHECKLIST de metodología
 
+# Para qué sirve
+# Sirve como referencia estándar de la industria para pentesters,
+# define QUÉ probar y CÓMO probarlo en cada fase de un engagement
+# de web app pentesting
+# Cubre desde la fase de recon/information gathering hasta la
+# explotación de vulnerabilidades específicas (auth, sesión,
+# input validation, lógica de negocio, APIs, etc.)
+
+# Estructura general del WSTG
+# Está organizado en categorías de testing, cada una con un ID
+# Categorías principales:
+#   - Information Gathering (WSTG-INFO)
+#   - Configuration & Deployment Management (WSTG-CONF)
+#   - Identity Management (WSTG-IDNT)
+#   - Authentication (WSTG-ATHN)
+#   - Authorization (WSTG-ATHZ)
+#   - Session Management (WSTG-SESS)
+#   - Input Validation (WSTG-INPV) -> incluye XSS, SQLi, etc.
+#   - Error Handling (WSTG-ERRH)
+#   - Cryptography (WSTG-CRYP)
+#   - Business Logic (WSTG-BUSL)
+#   - Client-Side Testing (WSTG-CLNT)
+#   - API Testing (WSTG-APIT)
+
+# Por qué es importante para el pentest
+# - Da un enfoque ORDENADO y repetible, evita que el pentester se
+#   salte pasos importantes durante el engagement
+# - Es un estándar reconocido en la industria -> los reportes que
+#   siguen esta metodología son más fáciles de validar/entender
+#   por clientes y otros pentesters
+# - Sirve como checklist: cada item tiene una descripción de qué
+#   probar, cómo probarlo, y ejemplos de herramientas/técnicas
+
+# Cómo se usa en la práctica
+# El pentester recorre las categorías relevantes al scope del
+# engagement, y por cada item de la guía documenta:
+#   - Si aplica o no al target
+#   - Qué se probó
+#   - Resultado (vulnerable / no vulnerable)
+#   - Evidencia (screenshots, requests, etc.)
+
+# Puntos clave para el examen:
+# - WSTG = metodología/checklist, NO es una herramienta automatizada
+# - Mantenida por OWASP (misma organización del OWASP Top 10)
+# - Da estructura a TODO el pentest de web apps, no solo a una fase
+# - Cada categoría tiene un código WSTG-XXXX para referencia rápida
+
+https://owasp.org/www-project-web-security-testing-guide/v42/
 ```
 
 ### ~ Active Information Gathering
