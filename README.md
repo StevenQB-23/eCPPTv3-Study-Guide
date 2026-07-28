@@ -1186,10 +1186,107 @@ host <domain-name>
 # infraestructura, ampliando la superficie de ataque conocida
 ```
 
+#### Website Fingerprinting with Netcraft
 
+```bash
+# Qué es Netcraft
+# Sitio web (netcraft.com) que permite hacer fingerprinting pasivo para obtener:
+# - Sistema operativo del servidor
+# - Web server usado (Apache, Nginx, IIS, etc.) y su versión
+# - Historial de cambios de infraestructura/hosting del sitio
+#   (útil para ver si migraron de proveedor, cambiaron de stack, etc.)
+# - Fecha del primer registro del sitio (site since / netcraft rank)
+# - Hosting provider y ubicación geográfica del servidor
+# - Tecnologías usadas (frameworks, CMS, lenguajes)
+# - Netblock owner (dueño del bloque de IPs)
 
+# Por qué es útil en un pentest
+# Ayuda a construir un perfil del target sin tocarlo directamente,
+# lo que reduce el riesgo de ser detectado en fases tempranas
+# Permite planear mejor las siguientes fases (ej: si se sabe que
+# corre IIS, se buscan vulnerabilidades específicas de ese stack)
+
+# Puntos clave para el examen:
+# - Netcraft = herramienta de Passive Information Gathering
+# - Sirve principalmente para: SO, web server, hosting history,
+#   fecha de creación del sitio
+# - No requiere autorización porque no interactúa directamente
+#   con el servidor objetivo (usa su propia base de datos)
+```
+
+#### Passive DNS Enumeration
+
+```bash
+# DNS RECON
+# A     -> hostname/dominio a IPv4
+# AAAA  -> hostname/dominio a IPv6
+# NS    -> nameserver del dominio
+# MX    -> mail server del dominio
+# CNAME -> alias de dominio
+# TXT   -> texto libre (SPF, verificaciones, etc.)
+# HINFO -> host information
+# SOA   -> autoridad del dominio
+# SRV   -> service records
+# PTR   -> IP a hostname (reverse DNS)
+
+# dnsrecon es un script en Python para hacer DNS enumeration:
+# busca registros DNS, direcciones de correo, IPv4, IPv6, etc.
+# asociados a un dominio
+
+# Ver opciones disponibles
+dnsrecon --help
+
+# Enumerar todos los registros DNS de un dominio
+dnsrecon -d <domain>
+
+# Devuelve entre otros:
+# - Registros A (IPv4)
+# - Registros AAAA (IPv6)
+# - Registros MX (mail servers)
+# - Registros NS, TXT, SOA, etc.
+
+# dnsdumpster.com
+# Herramienta web para hacer DNS recon de forma pasiva,
+# sin necesidad de terminal
+# Muestra registros DNS, subdominios encontrados y en algunos
+# casos un mapa visual de la infraestructura del dominio
+```
+#### Web Technology Fingerprinting
+
+```bash
+
+# Objetivo: identificar las tecnologías usadas en un sitio web
+# (CMS, frameworks, lenguajes de programación, librerías JS,
+# web server, analytics, etc.)
+# Esto ayuda a enfocar la búsqueda de vulnerabilidades conocidas
+# para el stack específico del target
+
+# WHATWEB
+# Herramienta CLI que escanea un sitio y detecta las tecnologías
+# usadas en él (CMS, servidor web, lenguajes, plugins, etc.)
+
+whatweb <domain>
+
+# WAPPALYZER
+# Es una herramienta (disponible como extensión de navegador y
+# como sitio web) que también detecta tecnologías usadas en un
+# sitio web, de forma similar a whatweb pero con interfaz visual
+
+# Qué puede identificar Wappalyzer:
+# - CMS (WordPress, Joomla, Drupal, etc.)
+# - Frameworks de frontend/backend (React, Angular, Laravel, etc.)
+# - Lenguajes de programación
+# - Web server (Apache, Nginx, IIS)
+# - Librerías de JavaScript
+# - Herramientas de analytics/marketing
+# - Certificados SSL/proveedores CDN
+```
 
 ### ~ Active Information Gathering
+
+
+```bash
+```
 
 ### ~ XSS
 
