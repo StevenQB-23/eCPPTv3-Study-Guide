@@ -1,5 +1,7 @@
 # eCPPTv3-Study-Guide (Work In Progress)
+
 ## Índice
+
 - [01 - PowerShell for Pentesters](#01---powershell-for-pentesters)
 - [02 - Client-Side Attacks](#02---client-side-attacks)
 - [03 - Web Application Penetration Testing](#03---web-application-penetration-testing)
@@ -1154,6 +1156,38 @@ type C:\FLAG1.txt
 
 https://owasp.org/www-project-web-security-testing-guide/v42/
 ```
+#### WHOIS
+
+```bash
+# Protocolo de consulta y respuesta para consultar bases de datos.
+whois <domain-name> # Consultar información de ownership de un dominio
+whois <ip-address> # También funciona pasando una IP en vez de un dominio
+# Info que suele devolver un WHOIS lookup:
+# - Registrant (dueño del dominio)
+# - Registrar (empresa donde se registró el dominio)
+# - Fechas de creación, expiración y última actualización
+# - Nameservers asociados al dominio
+# - Datos de contacto (a veces ocultos por WHOIS privacy/GDPR)
+
+# HOST - Alternativa rápida para resolución DNS
+# El comando host resuelve un dominio a su(s) IP(s) y también
+# puede mostrar otros registros DNS (MX, NS, etc.)
+host <domain-name>
+
+# whois.domaintools.com
+# Versión web del comando whois, útil cuando no se tiene acceso
+# a terminal o se quiere una interfaz más visual/legible
+
+# reverseip.domaintools.com
+# Reverse IP Lookup — dado una IP, muestra TODOS los dominios que
+# están hosteados en esa misma IP (útil en shared hosting)
+# Esto es valioso en un pentest porque puede revelar otros
+# dominios/apps del mismo cliente (o de terceros) que comparten
+# infraestructura, ampliando la superficie de ataque conocida
+```
+
+
+
 
 ### ~ Active Information Gathering
 
