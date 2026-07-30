@@ -1,3 +1,1 @@
-Task 1: Investigate crawling restrictions to reveal hidden clues
-The website may have restrictions that prevent search engines from indexing certain files or directories. Locate the first flag by analyzing a file that specifies these restrictions for web crawlers.
 
