@@ -1324,27 +1324,121 @@ whatweb <domain>
 #### Web Server Fingerprinting
 
 ```bash
+# Objetivo: identificar el software y versión del servidor web
+# para buscar vulnerabilidades conocidas asociadas a esa versión
 
+nmap -sV -F <ip> # detecta versión de servicios en los puertos más comunes (top 100)
+searchsploit apache 2.4.18 # busca exploits conocidos en Exploit-DB para esa versión
+nmap -sV -p 80 --script=http-enum <ip> # enumera directorios/archivos comunes (admin panels, backups, etc.)
+nmap -sV --script=banner <ip> # captura el banner del servicio, suele revelar software y versión
+
+msfconsole
+search auxiliary/scanner/http/http_version # busca módulo para detectar versión HTTP
+use 0
+set RHOSTS <ip-victima>
+run
+
+use auxiliary/scanner/http/brute_dirs # módulo para descubrir directorios por fuerza bruta
+set RHOSTS <ip>
+run
+
+wget http://<ip>/index # descarga la página como archivo local para inspección
+ls
+cat index
+
+lynx http://<ip> # navegador de texto en consola, útil para inspección rápida sin GUI
+
+curl http://<ip> # obtener respuesta HTTP cruda
+curl -I http://<ip> # solo headers (Server, X-Powered-By suelen revelar el software)
+
+dirb http://<ip> /usr/share/metasploit-framework/data/wordlists/directory.txt # enumeración de directorios/archivos por fuerza bruta
 ```
 
 #### Web Server Vulnerability Scanning with Nikto
 
 ```bash
+# Objetivo: escanear el servidor/aplicación web en busca de
+# vulnerabilidades conocidas, archivos peligrosos, configuraciones
+# inseguras y versiones desactualizadas de software
 
+nikto -h http://demo.ine.local # escaneo básico especificando la URL completa
+nikto -h demo.ine.local # también funciona pasando solo el hostname
+
+# EJEMPLO PRÁCTICO - Mutillidae II
+# En Mutillidae: "OWASP 2017" > "A5: Broken Access Control" >
+# "Insecure Direct Object References" > "Local File Inclusion"
+# copiamos la URL vulnerable a LFI:
+# http://demo.ine.local/index.php?page=arbitrary-file-inclusion.php
+
+nikto -h http://demo.ine.local/index.php?page=arbitrary-file-inclusion.php -Tuning 5 -Display V
+# -Tuning 5: limita el escaneo a una categoría específica de tests
+# (5 = command injection / remote file retrieval)
+# -Display V: muestra info verbose durante el escaneo (ej. redirects)
+
+nikto -h http://demo.ine.local/index.php?page=arbitrary-file-inclusion.php -Tuning 5 -o nikto.html -Format htm
+# -o: guarda el output en un archivo
+# -Format htm: define el formato del reporte de salida (html)
+
+ls -l
+# abrir el reporte generado en el navegador:
+# file:///root/nikto.html
+
+# EXPLOTACIÓN MANUAL DEL LFI DETECTADO
+# probamos path traversal para leer archivos del sistema
+http://demo.ine.local:80/index.php?page=../../../../../../../../etc/passwd
 ```
 
 #### File & Directory Brute Force
 
 ```bash
+gobuster dir --help # muestra todas las opciones disponibles del modo "dir"
 
+gobuster dir -u http://demo.ine.local -w /usr/share/wordlists/dirb/common.txt
+# -u: URL objetivo
+# -w: wordlist a usar para probar rutas
+
+gobuster dir -u http://demo.ine.local -w /usr/share/wordlists/dirb/common.txt -b 403,404
+# -b: excluye (blacklist) códigos de estado HTTP de los resultados,
+# en este caso 403 (forbidden) y 404 (not found)
+
+gobuster dir -u http://demo.ine.local -w /usr/share/wordlists/dirb/common.txt -b 403,404 -x .php,.xml,.txt -r
+# -x: agrega extensiones a cada palabra de la wordlist (prueba
+# archivo.php, archivo.xml, archivo.txt además del nombre base)
+# -r: sigue redirecciones automáticamente
+
+gobuster dir -u http://demo.ine.local/data -w /usr/share/wordlists/dirb/common.txt -b 403,404 -x .php,.xml,.txt -r
+# mismo escaneo pero apuntando a un subdirectorio específico
+# ("/data") ya descubierto previamente
 ```
 
 #### Automated Recon with OWASP Amass
 
 ```bash
+# Objetivo: reconocimiento automatizado de subdominios e
+# infraestructura de un dominio (DNS enumeration, subdomain
+# discovery, network mapping) combinando fuentes pasivas y
+# técnicas activas de fuerza bruta
 
-```
+sudo apt-get install amass # instalación de la herramienta
+amass --help # muestra los subcomandos y opciones disponibles
+amass enum -d zonetransfer.me # modo de enumeración de subdominios de forma pasiva y activa
+amass enum -passive -d zonetransfer.me # solo usa fuentes de información pasivas
+amass enum -d zonetransfer.me -passive -src -dir /home/kali/Desktop/ZTME/
+# -src: muestra la fuente de datos de cada resultado encontrado
+# -dir: directorio donde se guarda la data/resultados del escaneo
 
+amass enum -d zonetransfer.me -src -ip -brute -dir /home/kali/Desktop/ZTME_Brute/
+# -ip: muestra las IPs asociadas a cada subdominio encontrado
+# -brute: agrega fuerza bruta de subdominios (con wordlist) además
+# de las fuentes pasivas/activas normales
+
+amass intel -active -whois -d zonetransfer.me -dir /home/kali/Desktop/ZTME_Intel/
+# intel: modo de inteligencia para descubrir dominios relacionados
+# al target (no enumera subdominios, busca organización/infra)
+# -active: permite técnicas activas de recolección
+# -whois: usa datos de WHOIS para encontrar dominios relacionados
+# a la misma organización
+ ```
 
 ### ~ XSS
 
