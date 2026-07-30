@@ -1284,9 +1284,67 @@ whatweb <domain>
 
 ### ~ Active Information Gathering
 
+#### Crawling with Burp Suite & OWASP ZAP
 
 ```bash
+# Objetivo: mapear la estructura de un sitio web (páginas, endpoints,
+# parámetros, formularios) para tener una visión completa de la
+# superficie de ataque antes de buscar vulnerabilidades
+
+# CRAWLING vs SPIDERING
+# Son prácticamente sinónimos: recorrer un sitio web siguiendo enlaces
+# y formularios para descubrir automáticamente todas las rutas
+# accesibles y armar un mapa (sitemap) de la app. "Spidering" es el
+# término más usado dentro de herramientas de pentesting (ej. Burp)
+
+
+# OWASP ZAP
+# Proxy de interceptación gratuito y open source
+#
+# - Se configura el navegador para pasar el tráfico por el proxy de ZAP
+# - Mientras se navega manualmente, ZAP captura cada request/response
+#   y las va agregando en tiempo real al árbol "Sites" del dashboard
+# - Cuenta también con un "Spider" activo que recorre automáticamente
+#   los links a partir de una URL semilla, sin navegación manual
+
+
+# BURP SUITE
+# Proxy de interceptación (Community gratis, Pro de pago), estándar
+# de facto en pentesting web
+#
+# - Se configura el navegador para pasar el tráfico por el proxy
+#   (127.0.0.1:8080 por defecto)
+# - Cada request queda registrado en "Proxy > HTTP history"
+# - En paralelo, "Target > Site map" arma automáticamente el árbol
+#   de la app con cada página/endpoint visitado
+# - También tiene su propio "Spider"/"Crawl" para descubrir contenido
+#   automáticamente desde una URL semilla
 ```
+
+#### Web Server Fingerprinting
+
+```bash
+
+```
+
+#### Web Server Vulnerability Scanning with Nikto
+
+```bash
+
+```
+
+#### File & Directory Brute Force
+
+```bash
+
+```
+
+#### Automated Recon with OWASP Amass
+
+```bash
+
+```
+
 
 ### ~ XSS
 
