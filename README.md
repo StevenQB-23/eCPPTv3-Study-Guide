@@ -1706,19 +1706,120 @@ a' or '1'='1' union select flag,2,value,4,5 from secret_flag --
 
 ## 04 - Network Penetration Testing
 
-### ~ Information Gathering
-### ~ Networking Primer
 ### ~ Host Discovery
+
+#### Network Mapping
+
+```bash
+# Qué es
+# Fase de "active information gathering" — viene después del passive info gathering
+# Consiste en descubrir hosts, dispositivos y elementos de red dentro del scope,
+# para entender la arquitectura y encontrar puntos de entrada
+
+# Objetivos del Network Mapping
+# 1. Discovery of Live Hosts
+#    -> identificar qué IPs del rango están realmente activas
+# 2. Identificación de puertos abiertos y servicios
+#    -> qué puertos están abiertos y qué corre en ellos (define attack surface)
+# 3. Network Topology Mapping
+#    -> armar mapa/diagrama de routers, switches, firewalls, etc.
+# 4. OS Fingerprinting
+#    -> determinar el SO de cada host para adaptar el ataque
+# 5. Service Version Detection
+#    -> identificar versiones específicas de servicios
+#    -> clave para buscar CVEs asociados a esa versión puntual
+# 6. Identificación de filtros/seguridad
+#    -> detectar firewalls, IPS y demás defensas de la red
+
+# Puntos clave para el examen
+# - Network Mapping = el "por qué" antes del "cómo" (Nmap, etc.)
+# - Es el primer paso práctico dentro de active info gathering
+# - Sin esto no sabés ni cuántos hosts tenés que atacar dentro del scope
+```
+
+#### Host Discovery Techniques
+
+```bash
+# Técnicas de Host Discovery
+
+# 1. Ping Sweeps (ICMP Echo Requests)
+#    -> enviar ICMP Echo Request a un rango de IPs
+#    -> rápida y muy usada, pero fácil de detectar/bloquear
+
+# 2. ARP Scanning
+#    -> usa peticiones ARP para descubrir hosts
+#    -> solo funciona dentro del mismo broadcast domain (misma LAN)
+
+# 3. TCP SYN Ping (Half-Open Scan)
+#    -> manda TCP SYN a un puerto específico (comúnmente 80)
+#    -> si el host responde con SYN-ACK -> está vivo
+#    -> más stealthy que ICMP ping
+
+# 4. UDP Ping
+#    -> manda paquetes UDP a un puerto específico
+#    -> útil cuando el host no responde a ICMP ni TCP
+
+# 5. TCP ACK Ping
+#    -> manda TCP ACK a un puerto
+#    -> no espera respuesta normal; si llega un RST -> el host está vivo
+
+# 6. SYN-ACK Ping
+#    -> manda paquetes TCP SYN-ACK
+#    -> si llega un RST -> indica que el host está vivo
+
+# Pros / Contras (las 2 más importantes para el examen)
+
+# ICMP Ping
+# + rápido y soportado en todos lados
+# - muchos firewalls bloquean ICMP -> fácil de detectar/filtrar
+
+# TCP SYN Ping
+# + más stealthy que ICMP, puede evadir firewalls que permiten conexiones salientes
+# - algunos hosts no responden a SYN, y el resultado puede verse afectado
+#   por firewalls/IDS
+
+# Puntos clave para el examen
+# - No existe "la mejor técnica" -> depende de la red y del firewall/IDS presente
+# - ICMP = rápido pero ruidoso / fácil de bloquear
+# - TCP SYN = más sigiloso, buena alternativa cuando ICMP está filtrado
+# - ARP scanning solo sirve en la misma red local (no rutea)
+```
+
 ### ~ Port Scanning
+
+```bash
+
+```
+
 ### ~ Firewall/IDS Evasion
+
+
 ### ~ Scan Timing & Performance
+
+
 ### ~ Output & Verbosity
+
+
 ### ~ Enumeration Overview
+
+
 ### ~ Windows Enumeration
+
+
 ### ~ Linux Enumeration
+
+
 ### ~ Windows Exploitation
+
+
+
+
 ### ~ Linux Exploitation
+
+
+
 ### ~ Windows Post-Exploitation
+
 
 ## 05 - System Security & x86 Assembly Fundamentals
 
