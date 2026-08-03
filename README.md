@@ -1784,12 +1784,142 @@ a' or '1'='1' union select flag,2,value,4,5 from secret_flag --
 # - TCP SYN = más sigiloso, buena alternativa cuando ICMP está filtrado
 # - ARP scanning solo sirve en la misma red local (no rutea)
 ```
+#### Host Discovery With Nmap
+
+```bash
+nmap -h # muestra todas las opciones disponibles
+nmap -sn <target> #solo hace host discovery, no escanea puertos
+nmap -Pn <target> # Salta el host discovery y asume que TODOS los hosts están vivos
+
+nmap -sn 10.1.0.0/24 # Ping scan a toda la subnet
+nmap -sn 10.1.0.0/24 --send-ip
+# Fuerza el envío de paquetes IP en vez de frames ARP
+# (por defecto, en la misma LAN, Nmap usa ARP en lugar de ICMP -> es más rápido)
+# --send-ip obliga a usar ICMP/IP aunque estés en la misma red local
+
+nmap -sn 10.4.23.227 10.4.23.228 # Ping scan a hosts específicos
+nmap -sn 10.4.23.227-240 # Ping scan a un rango de IPs
+
+nmap -sn -PS 10.4.23.227
+# TCP SYN Ping — por defecto prueba contra el puerto 80
+# usa un paquete SYN en vez de ICMP para el host discovery
+
+nmap -sn -PS22 10.4.23.227 # TCP SYN Ping contra un puerto especifico
+nmap -sn -PS1-1000 10.4.23.227 # TCP SYN Ping contra un rango de puertos (1 al 1000)
+nmap -sn -PS80,3389,445 10.4.23.227 # TCP SYN Ping contra una lista específica de puertos
+
+# -sn = no escanea puertos, solo confirma si el host está vivo
+
+nmap -PS80,3389,445 10.4.23.227
+# (sin -sn) TCP SYN Ping + además SÍ hace port scan sobre esos puertos
+# combina host discovery y escaneo de puertos en un solo comando
+
+nmap -sn -PA 10.4.23.227
+# TCP ACK Ping — manda paquetes ACK en vez de SYN
+# útil para bypassear firewalls stateless que solo filtran SYN entrantes
+
+nmap -sn -PE 10.4.23.227 --send-ip
+# Fuerza el uso de ICMP Echo Request (Type 8) explícitamente
+# --send-ip asegura que se mande a nivel IP y no ARP
+
+nmap -sn -v -T4 10.4.23.227
+# -v = verbose (más output/detalle)
+# -T4 = timing template "Aggressive" (más rápido, menos delay entre paquetes)
+#       escala de -T0 (paranoid/lentísimo) a -T5 (insane/muy rápido y ruidoso)
+
+# Puntos clave para el examen
+# -sn = host discovery SIN port scan
+# -Pn = SIN host discovery, asume todos vivos (bypass cuando ICMP está bloqueado)
+# -PS = TCP SYN ping (default puerto 80, pero configurable)
+# -PA = TCP ACK ping (bueno contra firewalls stateless)
+# -PE = fuerza ICMP Echo explícito
+# --send-ip = fuerza uso de IP/ICMP en vez de ARP en LAN
+# -T0 a -T5 = velocidad del scan (0 lento/sigiloso -> 5 rápido/ruidoso)
+```
 
 ### ~ Port Scanning
+
+#### Port Scanning With Nmap
+
+```bash
+nmap <ip> # Scan default: host discovery + top 1000 puertos TCP
+
+nmap -Pn <ip> # Salta host discovery, asume host vivo, escanea puertos igual
+
+nmap -Pn -F <ip> # -F = Fast scan, solo top 100 puertos (en vez de los 1000 default)
+
+nmap -Pn -p <port> <ip> # Escanea un puerto específico
+
+nmap -Pn -p<port1,port2,etc..> <ip> # Escanea una lista específica de puertos
+
+nmap -F 127.0.0.1 # Fast scan sobre localhost (loopback siempre responde, no necesita -Pn)
+
+nmap -T4 -Pn -p- <ip>
+# -p- = escanea TODOS los puertos (1-65535), no solo el top 1000
+# -T4 = timing agresivo para que no tarde una eternidad
+
+nmap -Pn -sS -F <ip>
+# -sS = TCP SYN Scan ("half-open" scan)
+# no completa el 3-way handshake -> más rápido y más sigiloso (stealth scan)
+# requiere privilegios de root/admin
+
+nmap -Pn -sT <ip>
+# -sT = TCP Connect Scan
+# completa el 3-way handshake completo (SYN -> SYN/ACK -> ACK)
+# más lento y más "ruidoso"/detectable, pero no requiere privilegios root
+
+nmap -sU <ip>
+# -sU = UDP Scan
+# escanea puertos UDP en vez de TCP (default sin -sU es TCP)
+# mucho más lento que TCP porque UDP no tiene respuesta garantizada
+
+nmap -Pn -sU <ip> # UDP scan saltando el host discovery
+
+# Puntos clave para el examen
+# -sS (SYN scan) = default cuando corrés como root, stealthy, no completa handshake
+# -sT (Connect scan) = usa el handshake completo, se usa cuando no tenés privilegios
+# -sU = escaneo UDP, mucho más lento y menos confiable que TCP
+# -F = top 100 puertos | default = top 1000 | -p- = los 65535
+```
+
+#### Service Version & OS Detection
+
+```bash
+nmap -T4 -sS -sV -p- <ip>
+# -sV = Service Version Detection
+# intenta determinar la versión exacta del servicio corriendo en cada puerto abierto
+# (ej: no solo "puerto 22 abierto" sino "OpenSSH 8.2p1")
+
+nmap -T4 -sS -sV -O -p- <ip>
+# -O = OS Detection
+# intenta identificar el sistema operativo del host mediante fingerprinting
+# (analiza respuestas TCP/IP stack para adivinar el SO)
+
+nmap -T4 -sS -sV -O --osscan-guess -p- <ip>
+# --osscan-guess = hace que Nmap "adivine" con más agresividad cuando
+# no encuentra un match perfecto de OS fingerprint
+# útil cuando el resultado normal de -O da porcentajes bajos de certeza
+
+nmap -T4 -sS -sV --version-intensity 8 -O --osscan-guess -p- <ip>
+# --version-intensity <0-9> = qué tan a fondo prueba para detectar la versión
+# 0 = solo probes más comunes/livianos (más rápido, menos preciso)
+# 9 = prueba TODOS los probes disponibles (más lento, más preciso)
+# default = 7
+# 8 = casi el máximo de intensidad, buena precisión sin llegar al extremo
+
+# Puntos clave para el examen
+# -sV = detecta versión del servicio (no solo el puerto/protocolo)
+# -O = detecta el sistema operativo del host (fingerprinting TCP/IP stack)
+# --osscan-guess = fuerza a Nmap a arriesgar un resultado aunque no esté 100% seguro
+# --version-intensity = controla profundidad/precisión del -sV (0 rápido - 9 exhaustivo)
+```
+
+#### Nmap Scripting Engine (NSE)
 
 ```bash
 
 ```
+
 
 ### ~ Firewall/IDS Evasion
 
