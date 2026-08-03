@@ -1949,24 +1949,102 @@ nmap -sS -A -p- -T4 <ip>
 
 ### ~ Firewall/IDS Evasion
 
+```bash
+nmap -Pn -sA -p445,3389 <ip>
+# -sA = TCP ACK Scan
+# no determina si el puerto está abierto/cerrado, sino si está FILTRADO o NO
+# manda ACK: si responde RST -> "unfiltered" | si no responde -> "filtered"
+# se usa para mapear reglas de firewall, no para descubrir puertos abiertos
+
+nmap -Pn -sS -sV -F <ip> # SYN scan + version detection sobre el top 100 puertos (-F)
+
+nmap -Pn -sS -sV -p80,445,3389 -f <ip>
+# -f = fragmenta los paquetes (fragmentation)
+# parte el paquete en fragmentos IP más pequeños
+# -> puede evadir firewalls/IDS simples que no reensamblan fragmentos para inspeccionar
+
+nmap -Pn -sS -sV -p80,445,3389 -f --mtu 32 <ip>
+# --mtu <valor> = define el tamaño del MTU (debe ser múltiplo de 8)
+# permite controlar el tamaño exacto de los fragmentos generados
+# (más control que usar -f solo, que fragmenta con un tamaño fijo por defecto)
+
+nmap -Pn -sS -sV -p80,445,3389 -f --data-length 200 -D <otra-ip o ips> <ip victima>
+# --data-length <n> = agrega bytes random al final de los paquetes
+# -> cambia la "firma"/tamaño del paquete para evadir firewalls basados en tamaño
+# -D <decoy1,decoy2,...> = Decoy scan
+# hace parecer que el scan viene de múltiples IPs (señuelos) además de la tuya
+# -> dificulta identificar cuál IP es la real atacante en los logs del target
+
+nmap -Pn -sS -sV -p80,445,3389 -f --data-length 200 -g 53 -D <otra-ip o ips> <ip victima>
+# -g 53 (o --source-port 53) = fuerza el puerto de origen a 53 (DNS)
+# muchos firewalls confían/permiten tráfico que "viene" del puerto 53
+# -> técnica de evasión para que el tráfico parezca DNS legítimo
+
+# Puntos clave para el examen
+# -sA = detecta reglas de firewall (filtered/unfiltered), NO abre/cierra puertos
+# -f / --mtu = fragmentación de paquetes para evadir inspección de firewalls/IDS
+# --data-length = altera tamaño del paquete para evadir firmas basadas en tamaño
+# -D = decoy scan, oculta tu IP real entre señuelos
+# -g / --source-port = falsea el puerto de origen (ej: 53/DNS) para parecer tráfico confiable
+```
 
 ### ~ Scan Timing & Performance
 
+```bash
+-T<0-5>
+# Timing templates, controlan velocidad/agresividad del scan
+# T0 = Paranoid  (el más lento, máximo sigilo, evade IDS)
+# T1 = Sneaky
+# T2 = Polite
+# T3 = Normal    (default)
+# T4 = Aggressive (rápido, recomendado en labs/CTFs)
+# T5 = Insane    (el más rápido, muy ruidoso, puede perder resultados por timeouts)
 
-### ~ Output & Verbosity
+--host-timeout
+# define el tiempo máximo que Nmap espera por un host antes de darlo por perdido/saltarlo
 
+nmap -sS -sV -F --host-timeout <Xs> <ip>
+# X segundos = tiempo máximo de espera por host
+# cuidado: si el tiempo es muy corto, Nmap puede descartar hosts que sí estaban
+# vivos pero respondieron lento -> falsos negativos
 
-### ~ Enumeration Overview
+nmap -sS -sV -F --scan-delay 5s <ip>
+# --scan-delay = fuerza una pausa fija entre cada probe/paquete enviado
+# más sigiloso, pero mucho más lento -> útil para evadir rate-limiting/IDS
 
+nmap -sS -sV -F -T1 <ip>
+# T1 (Sneaky) = scan muy lento y espaciado, pensado para evadir detección
+
+nmap -sS -sV -F -T4 <ip>
+# T4 (Aggressive) = scan rápido, ideal para entornos de lab/CTF donde
+# el sigilo no es la prioridad
+
+# Puntos clave para el examen
+# -T0/T1 = sigilo (evasión), -T4/T5 = velocidad (a costa de ser detectado)
+# --host-timeout = evita que Nmap se cuelgue esperando un host caído/lento
+# --scan-delay = fuerza espaciado entre paquetes, útil contra IDS con rate-limiting
+# Trade-off constante: a más velocidad -> más ruido/detección
+#                       a más sigilo -> más tiempo de escaneo
+```
 
 ### ~ Windows Enumeration
 
+#### SMB & NetBIOS Enumeration
+
+```bash
+
+```
+
+#### SNMP Enumeration
+
+```bash
+
+```
 
 ### ~ Linux Enumeration
 
 
 ### ~ Windows Exploitation
-
 
 
 
