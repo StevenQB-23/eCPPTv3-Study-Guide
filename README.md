@@ -1917,9 +1917,35 @@ nmap -T4 -sS -sV --version-intensity 8 -O --osscan-guess -p- <ip>
 #### Nmap Scripting Engine (NSE)
 
 ```bash
+ls -al /usr/share/nmap/scripts/ # lista todos los scripts NSE disponibles instalados en el sistema
+ls -al /usr/share/nmap/scripts/ | grep -e 'http' # filtra solo los scripts relacionados a http (ej: http-title, http-headers, etc.)
 
+nmap -sS -sV -sC -p- -T4 <ip>
+# -sC = corre los scripts NSE "default" (categoría default)
+# equivale a --script=default
+# son los scripts más seguros/comunes (no intrusivos) que trae Nmap de fábrica
+
+nmap --script-help=mongodb-databases
+# muestra la ayuda/documentación de un script NSE específico
+# útil para saber qué hace el script y qué argumentos acepta antes de correrlo
+
+nmap -sS -sV -script=<script> -p<port> -T4 <ip>
+# --script=<script> = corre un script NSE específico (no todos los default)
+# se puede combinar con -p para apuntarlo directo al puerto/servicio relevante
+
+nmap -sS -A -p- -T4 <ip>
+# -A = Aggressive scan
+# combina en un solo flag: -sV (version detection) + -O (OS detection)
+#                          + -sC (scripts default) + traceroute
+# muy completo pero MUY ruidoso -> fácil de detectar por IDS/IPS
+
+# Puntos clave para el examen
+# -sC = corre categoría "default" de scripts NSE (safe, no intrusivos)
+# --script=<nombre> = corre un script puntual (ej: mongodb-databases, http-title)
+# --script-help=<script> = muestra qué hace un script antes de usarlo
+# -A = combo agresivo (sV + O + sC + traceroute) -> ideal en labs, riesgoso en real
+# Los scripts NSE viven en /usr/share/nmap/scripts/
 ```
-
 
 ### ~ Firewall/IDS Evasion
 
