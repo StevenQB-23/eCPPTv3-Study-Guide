@@ -2185,11 +2185,13 @@ type FLAG1.txt
 # SNMP mal configurado suele filtrar usuarios válidos del sistema -> pivote para
 # ataques de fuerza bruta en otros servicios (SMB, SSH, etc.)
 # snmp-brute (NSE) = fuerza bruta de community strings
-
 ```
 
 ### ~ Linux Enumeration
 
+```bash
+
+```
 
 ### ~ Windows Exploitation
 
